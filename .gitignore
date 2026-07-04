@@ -1,0 +1,8 @@
+# .gitignore for .NET
+[Bb]in/
+[Oo]bj/
+*.user
+*.suo
+*.sln.docstates
+.vs/
+*.slnx

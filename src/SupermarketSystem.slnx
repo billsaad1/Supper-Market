@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="Supermarket.BLL/Supermarket.BLL.csproj" />
+  <Project Path="Supermarket.DAL/Supermarket.DAL.csproj" />
+  <Project Path="Supermarket.Models/Supermarket.Models.csproj" />
+  <Project Path="Supermarket.UI/Supermarket.UI.csproj" />
+</Solution>
