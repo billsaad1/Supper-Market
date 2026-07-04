@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using Supermarket.BLL;
 
@@ -12,18 +13,28 @@ namespace Supermarket.UI
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
-            string connString = AppSettings.ConnectionString;
+            RunAppAsync();
+            Application.Run(); // Keep the message loop running
+        }
 
+        static async void RunAppAsync()
+        {
             // Initialize Localization
             LanguageHelper.TranslationService = new TranslationService(AppSettings.ConnectionString);
             try {
                 await LanguageHelper.TranslationService.LoadResourcesAsync();
-            } catch { /* Fail silently if DB not ready */ }
+            } catch { }
 
             LoginForm login = new LoginForm();
             if (login.ShowDialog() == DialogResult.OK)
             {
-                Application.Run(new MainForm());
+                MainForm main = new MainForm();
+                main.FormClosed += (s, e) => Application.Exit();
+                main.Show();
+            }
+            else
+            {
+                Application.Exit();
             }
         }
     }
