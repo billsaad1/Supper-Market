@@ -38,5 +38,26 @@ namespace Supermarket.DAL
                 return await db.QueryAsync(sql);
             }
         }
+
+        public async Task<IEnumerable<dynamic>> GetItemMovementAsync(int itemId)
+        {
+            using (IDbConnection db = new SqlConnection(_connectionString))
+            {
+                string sql = @"SELECT MovementDate, MovementType, Quantity, Notes
+                               FROM StockMovement WHERE ItemID = @itemId ORDER BY MovementDate DESC";
+                return await db.QueryAsync(sql, new { itemId });
+            }
+        }
+
+        public async Task<IEnumerable<dynamic>> GetExpiryReportAsync(int days)
+        {
+            using (IDbConnection db = new SqlConnection(_connectionString))
+            {
+                string sql = @"SELECT i.ItemName, s.ExpiryDate, s.Quantity
+                               FROM Stock s JOIN Items i ON s.ItemID = i.ItemID
+                               WHERE s.ExpiryDate <= DATEADD(day, @days, GETDATE())";
+                return await db.QueryAsync(sql, new { days });
+            }
+        }
     }
 }

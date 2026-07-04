@@ -15,7 +15,10 @@ namespace Supermarket.UI
             string connString = AppSettings.ConnectionString;
 
             // Initialize Localization
-            LanguageHelper.TranslationService = new TranslationService(connString);
+            LanguageHelper.TranslationService = new TranslationService(AppSettings.ConnectionString);
+            try {
+                await LanguageHelper.TranslationService.LoadResourcesAsync();
+            } catch { /* Fail silently if DB not ready */ }
 
             LoginForm login = new LoginForm();
             if (login.ShowDialog() == DialogResult.OK)

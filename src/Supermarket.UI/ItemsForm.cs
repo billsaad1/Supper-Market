@@ -27,9 +27,12 @@ namespace Supermarket.UI
             this.Text = "Manage Items / إدارة الأصناف";
             this.Size = new Size(800, 600);
 
-            dgvItems = new DataGridView { Dock = DockStyle.Fill, AutoGenerateColumns = true };
+            dgvItems = new DataGridView { Dock = DockStyle.Fill, AutoGenerateColumns = true, SelectionMode = DataGridViewSelectionMode.FullRowSelect, ReadOnly = true };
             btnAdd = new Button { Text = "Add Item / إضافة صنف", Dock = DockStyle.Bottom, Height = 40 };
-            btnAdd.Click += (s, e) => MessageBox.Show("Add Item Clicked");
+            btnAdd.Click += (s, e) => {
+                var details = new ItemDetailsForm();
+                if (details.ShowDialog() == DialogResult.OK) LoadData();
+            };
 
             this.Controls.Add(dgvItems);
             this.Controls.Add(btnAdd);
