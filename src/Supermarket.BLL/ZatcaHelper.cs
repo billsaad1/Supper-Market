@@ -25,7 +25,7 @@ namespace Supermarket.BLL
             return Convert.ToBase64String(fullTlv.ToArray());
         }
 
-        private byte[] GetTlv(int tag, string value)
+        private static byte[] GetTlv(int tag, string value)
         {
             byte[] valueBytes = Encoding.UTF8.GetBytes(value);
             byte[] tlv = new byte[2 + valueBytes.Length];

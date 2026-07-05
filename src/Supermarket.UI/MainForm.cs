@@ -1,6 +1,7 @@
 using System;
 using System.Drawing;
 using System.Windows.Forms;
+using Supermarket.BLL;
 
 namespace Supermarket.UI
 {
@@ -9,9 +10,11 @@ namespace Supermarket.UI
         private Panel sidePanel;
         private Panel headerPanel;
         private Label lblTitle;
+        private string _userRole;
 
-        public MainForm()
+        public MainForm(string userRole = "Admin")
         {
+            _userRole = userRole;
             InitializeComponent();
             SetupUI();
         }
@@ -31,28 +34,33 @@ namespace Supermarket.UI
             headerPanel.Controls.Add(lblTitle);
 
             int y = 0;
-            AddSectionLabel("--- OPERATIONS ---", ref y);
-            AddMenuButton("POS / نقطة البيع", ref y, (s, e) => OpenForm(new PosForm()));
-            AddMenuButton("Purchases / المشتريات", ref y, (s, e) => OpenForm(new PurchaseForm()));
-            AddMenuButton("Shifts / الورديات", ref y, (s, e) => OpenForm(new ShiftClosingForm()));
+            if (PermissionsManager.CanAccess(_userRole, "POS")) {
+                AddSectionLabel("--- OPERATIONS ---", ref y);
+                AddMenuButton("POS / نقطة البيع", ref y, (s, e) => OpenForm(new PosForm()));
+                AddMenuButton("Shifts / الورديات", ref y, (s, e) => OpenForm(new ShiftClosingForm()));
+            }
 
-            AddSectionLabel("--- INVENTORY ---", ref y);
-            AddMenuButton("Items / الأصناف", ref y, (s, e) => OpenForm(new ItemsForm()));
-            AddMenuButton("Categories / المجموعات", ref y, (s, e) => OpenForm(new CategoriesForm()));
-            AddMenuButton("Adjustments / تسويات", ref y, (s, e) => OpenForm(new AdjustmentForm()));
+            if (PermissionsManager.CanAccess(_userRole, "Purchases")) {
+                AddMenuButton("Purchases / المشتريات", ref y, (s, e) => OpenForm(new PurchaseForm()));
+            }
 
-            AddSectionLabel("--- ACCOUNTING ---", ref y);
-            AddMenuButton("Accounts / الحسابات", ref y, (s, e) => OpenForm(new AccountsForm()));
-            AddMenuButton("Vouchers / السندات", ref y, (s, e) => OpenForm(new VouchersForm()));
+            if (PermissionsManager.CanAccess(_userRole, "Items")) {
+                AddSectionLabel("--- INVENTORY ---", ref y);
+                AddMenuButton("Items / الأصناف", ref y, (s, e) => OpenForm(new ItemsForm()));
+                AddMenuButton("Categories / المجموعات", ref y, (s, e) => OpenForm(new CategoriesForm()));
+                AddMenuButton("Adjustments / تسويات", ref y, (s, e) => OpenForm(new AdjustmentForm()));
+            }
 
-            AddSectionLabel("--- MANAGEMENT ---", ref y);
-            AddMenuButton("Contacts / الجهات", ref y, (s, e) => OpenForm(new ContactsForm()));
-            AddMenuButton("HR / الموظفين", ref y, (s, e) => OpenForm(new HRForm()));
-            AddMenuButton("Users / المستخدمين", ref y, (s, e) => OpenForm(new UsersForm()));
-            AddMenuButton("Settings / الإعدادات", ref y, (s, e) => OpenForm(new CompanySettingsForm()));
+            if (PermissionsManager.CanAccess(_userRole, "Accounting")) {
+                AddSectionLabel("--- ACCOUNTING ---", ref y);
+                AddMenuButton("Accounts / الحسابات", ref y, (s, e) => OpenForm(new AccountsForm()));
+                AddMenuButton("Vouchers / السندات", ref y, (s, e) => OpenForm(new VouchersForm()));
+            }
 
-            AddSectionLabel("--- REPORTS ---", ref y);
-            AddMenuButton("Reports / التقارير", ref y, (s, e) => OpenForm(new ReportsForm()));
+            if (PermissionsManager.CanAccess(_userRole, "Reports")) {
+                AddSectionLabel("--- REPORTS ---", ref y);
+                AddMenuButton("Reports / التقارير", ref y, (s, e) => OpenForm(new DetailedReportsForm()));
+            }
 
             this.Controls.Add(headerPanel);
             this.Controls.Add(sidePanel);

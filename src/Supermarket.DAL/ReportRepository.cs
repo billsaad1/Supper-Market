@@ -59,5 +59,19 @@ namespace Supermarket.DAL
                 return await db.QueryAsync(sql, new { days });
             }
         }
+
+        public async Task<dynamic> GetProfitAndLossAsync(DateTime from, DateTime to)
+        {
+            using (IDbConnection db = new SqlConnection(_connectionString))
+            {
+                string sql = @"
+                    SELECT
+                        (SELECT SUM(NetAmount) FROM SalesInvoices WHERE InvoiceDate BETWEEN @from AND @to) as TotalSales,
+                        (SELECT SUM(TaxAmount) FROM SalesInvoices WHERE InvoiceDate BETWEEN @from AND @to) as TotalVAT,
+                        (SELECT SUM(Debit) FROM JournalEntryDetails jed JOIN JournalEntries je ON jed.JournalID = je.JournalID
+                         WHERE AccountID = 4 AND je.EntryDate BETWEEN @from AND @to) as TotalCOGS";
+                return await db.QueryFirstOrDefaultAsync(sql, new { from, to });
+            }
+        }
     }
 }

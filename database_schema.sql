@@ -267,6 +267,17 @@ CREATE TABLE Settings (
 INSERT INTO Users (Username, PasswordHash, FullName, Role) VALUES ('admin', 'admin123', 'Administrator', 'Admin');
 INSERT INTO Stores (StoreName, IsMainStore) VALUES (N'المخزن الرئيسي', 1);
 INSERT INTO Settings (SettingKey, SettingValue) VALUES ('TaxNumber', '1234567890'), ('CompanyName', 'Supermarket');
+-- Insert basic Chart of Accounts
+SET IDENTITY_INSERT ChartOfAccounts ON;
+INSERT INTO ChartOfAccounts (AccountID, AccountNumber, AccountName, AccountType) VALUES
+(1, '1101', N'الصندوق', 'Asset'),
+(2, '4101', N'المبيعات', 'Revenue'),
+(3, '2101', N'ضريبة المخرجات', 'Liability'),
+(4, '5101', N'تكلفة البضاعة المباعة', 'Expense'),
+(5, '1201', N'المخزون', 'Asset'),
+(6, '1102', N'مدينون - عملاء', 'Asset');
+SET IDENTITY_INSERT ChartOfAccounts OFF;
+
 INSERT INTO Localization (ResourceKey, ArabicValue, EnglishValue) VALUES
 ('lblUsername', N'اسم المستخدم', 'Username'),
 ('lblPassword', N'كلمة المرور', 'Password'),

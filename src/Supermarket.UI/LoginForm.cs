@@ -16,7 +16,6 @@ namespace Supermarket.UI
 
         public LoginForm()
         {
-            InitializeComponent();
             string connString = AppSettings.ConnectionString;
             _authService = new AuthService(connString);
             SetupUI();
@@ -30,10 +29,10 @@ namespace Supermarket.UI
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
 
-            lblUsername = new Label { Text = "Username / اسم المستخدم", Location = new Point(30, 30), Size = new Point(340, 20), Tag = "lblUsername" };
+            lblUsername = new Label { Text = "Username / اسم المستخدم", Location = new Point(30, 30), Size = new Size(340, 20), Tag = "lblUsername" };
             txtUsername = new TextBox { Location = new Point(30, 55), Width = 320 };
 
-            lblPassword = new Label { Text = "Password / كلمة المرور", Location = new Point(30, 90), Size = new Point(340, 20), Tag = "lblPassword" };
+            lblPassword = new Label { Text = "Password / كلمة المرور", Location = new Point(30, 90), Size = new Size(340, 20), Tag = "lblPassword" };
             txtPassword = new TextBox { Location = new Point(30, 115), Width = 320, PasswordChar = '*' };
 
             btnLogin = new Button { Text = "Login / دخول", Location = new Point(30, 160), Width = 320, Height = 40, Tag = "btnLogin" };
@@ -45,6 +44,8 @@ namespace Supermarket.UI
             LanguageHelper.ApplyLanguage(this);
         }
 
+        private void InitializeComponent() { }
+
         private async void BtnLogin_Click(object sender, EventArgs e)
         {
             btnLogin.Enabled = false;
@@ -53,6 +54,7 @@ namespace Supermarket.UI
             {
                 MessageBox.Show($"Welcome / أهلاً بك {user.FullName}");
                 this.DialogResult = DialogResult.OK;
+                this.Tag = user.Role;
                 this.Close();
             }
             else

@@ -28,7 +28,8 @@ namespace Supermarket.UI
             LoginForm login = new LoginForm();
             if (login.ShowDialog() == DialogResult.OK)
             {
-                MainForm main = new MainForm();
+                string role = login.Tag?.ToString() ?? "Admin";
+                MainForm main = new MainForm(role);
                 main.FormClosed += (s, e) => Application.Exit();
                 main.Show();
             }
