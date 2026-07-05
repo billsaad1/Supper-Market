@@ -11,8 +11,11 @@ namespace Supermarket.UI
         private TextBox txtUsername;
         private TextBox txtPassword;
         private Button btnLogin;
+        private Button btnSettings;
         private Label lblUsername;
         private Label lblPassword;
+        private Label lblTitle;
+        private Panel panelHeader;
 
         public LoginForm()
         {
@@ -23,22 +26,95 @@ namespace Supermarket.UI
 
         private void SetupUI()
         {
-            this.Text = "Login / تسجيل الدخول";
-            this.Size = new Size(400, 250);
+            this.Text = "Supermarket System - Login";
+            this.Size = new Size(450, 350);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
+            this.BackColor = Color.FromArgb(240, 240, 240);
+            this.Font = new Font("Segoe UI", 10);
 
-            lblUsername = new Label { Text = "Username / اسم المستخدم", Location = new Point(30, 30), Size = new Size(340, 20), Tag = "lblUsername" };
-            txtUsername = new TextBox { Location = new Point(30, 55), Width = 320 };
+            panelHeader = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 60,
+                BackColor = Color.FromArgb(45, 52, 71)
+            };
 
-            lblPassword = new Label { Text = "Password / كلمة المرور", Location = new Point(30, 90), Size = new Size(340, 20), Tag = "lblPassword" };
-            txtPassword = new TextBox { Location = new Point(30, 115), Width = 320, PasswordChar = '*' };
+            lblTitle = new Label
+            {
+                Text = "Supermarket System / نظام السوبر ماركت",
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 14, FontStyle.Bold),
+                Dock = DockStyle.Fill,
+                TextAlign = ContentAlignment.MiddleCenter
+            };
+            panelHeader.Controls.Add(lblTitle);
 
-            btnLogin = new Button { Text = "Login / دخول", Location = new Point(30, 160), Width = 320, Height = 40, Tag = "btnLogin" };
+            lblUsername = new Label
+            {
+                Text = "Username / اسم المستخدم",
+                Location = new Point(50, 80),
+                Size = new Size(350, 25),
+                Tag = "lblUsername"
+            };
+            txtUsername = new TextBox
+            {
+                Location = new Point(50, 110),
+                Width = 350,
+                Height = 30
+            };
+
+            lblPassword = new Label
+            {
+                Text = "Password / كلمة المرور",
+                Location = new Point(50, 150),
+                Size = new Size(350, 25),
+                Tag = "lblPassword"
+            };
+            txtPassword = new TextBox
+            {
+                Location = new Point(50, 180),
+                Width = 350,
+                Height = 30,
+                PasswordChar = '*'
+            };
+
+            btnLogin = new Button
+            {
+                Text = "Login / دخول",
+                Location = new Point(50, 230),
+                Width = 350,
+                Height = 45,
+                BackColor = Color.FromArgb(0, 122, 204),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                Font = new Font("Segoe UI", 12, FontStyle.Bold),
+                Tag = "btnLogin"
+            };
+            btnLogin.FlatAppearance.BorderSize = 0;
             btnLogin.Click += BtnLogin_Click;
 
-            this.Controls.AddRange(new Control[] { lblUsername, txtUsername, lblPassword, txtPassword, btnLogin });
+            btnSettings = new Button
+            {
+                Text = "⚙",
+                Location = new Point(410, 310),
+                Size = new Size(30, 30),
+                FlatStyle = FlatStyle.Flat,
+                ForeColor = Color.Gray
+            };
+            btnSettings.FlatAppearance.BorderSize = 0;
+            btnSettings.Click += (s, e) => {
+                using (var dbSettings = new DatabaseSettingsForm())
+                {
+                    if (dbSettings.ShowDialog() == DialogResult.OK)
+                    {
+                        Application.Restart();
+                    }
+                }
+            };
+
+            this.Controls.AddRange(new Control[] { panelHeader, lblUsername, txtUsername, lblPassword, txtPassword, btnLogin, btnSettings });
 
             // Apply localization
             LanguageHelper.ApplyLanguage(this);
@@ -48,20 +124,29 @@ namespace Supermarket.UI
 
         private async void BtnLogin_Click(object sender, EventArgs e)
         {
-            btnLogin.Enabled = false;
-            var user = await _authService.LoginAsync(txtUsername.Text, txtPassword.Text);
-            if (user != null)
+            try
             {
-                MessageBox.Show($"Welcome / أهلاً بك {user.FullName}");
-                this.DialogResult = DialogResult.OK;
-                this.Tag = user.Role;
-                this.Close();
+                btnLogin.Enabled = false;
+                var user = await _authService.LoginAsync(txtUsername.Text, txtPassword.Text);
+                if (user != null)
+                {
+                    this.DialogResult = DialogResult.OK;
+                    this.Tag = user.Role;
+                    this.Close();
+                }
+                else
+                {
+                    MessageBox.Show("Invalid username or password / اسم المستخدم أو كلمة المرور غير صحيحة", "Login Failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
             }
-            else
+            catch (Exception ex)
             {
-                MessageBox.Show("Invalid username or password / اسم المستخدم أو كلمة المرور غير صحيحة");
+                MessageBox.Show($"Connection Error / خطأ في الاتصال:\n{ex.Message}\n\nPlease check database settings.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
-            btnLogin.Enabled = true;
+            finally
+            {
+                btnLogin.Enabled = true;
+            }
         }
     }
 }

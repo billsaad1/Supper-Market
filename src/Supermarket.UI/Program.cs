@@ -13,20 +13,37 @@ namespace Supermarket.UI
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
-            // Initialize Localization (Synchronous wait for essential async startup data)
+            // Load settings first
+            AppSettings.LoadSettings();
+
+            // Initialize Localization
             LanguageHelper.TranslationService = new TranslationService(AppSettings.ConnectionString);
             try
             {
+                // Try to load translations, but don't crash if DB is not reachable yet
                 LanguageHelper.TranslationService.LoadResourcesAsync().GetAwaiter().GetResult();
             }
-            catch { /* Fallback to default if DB is not ready */ }
-
-            using (LoginForm login = new LoginForm())
+            catch
             {
-                if (login.ShowDialog() == DialogResult.OK)
+                // Fallback will happen naturally in TranslationService if _resources is null
+            }
+
+            bool retryLogin = true;
+            while (retryLogin)
+            {
+                using (LoginForm login = new LoginForm())
                 {
-                    string role = login.Tag?.ToString() ?? "Admin";
-                    Application.Run(new MainForm(role));
+                    var result = login.ShowDialog();
+                    if (result == DialogResult.OK)
+                    {
+                        string role = login.Tag?.ToString() ?? "Admin";
+                        Application.Run(new MainForm(role));
+                        retryLogin = false;
+                    }
+                    else
+                    {
+                        retryLogin = false; // User cancelled
+                    }
                 }
             }
         }
