@@ -1,6 +1,7 @@
 using System;
 using System.Drawing;
 using System.Windows.Forms;
+using Supermarket.DAL;
 
 namespace Supermarket.UI
 {
@@ -27,7 +28,18 @@ namespace Supermarket.UI
 
             TabPage tabBackup = new TabPage("Backup / النسخ الاحتياطي");
             Button btnBackup = new Button { Text = "Backup Now / نسخ احتياطي الآن", Location = new Point(50, 50), Size = new Size(200, 50), BackColor = Color.Green, ForeColor = Color.White };
+            btnBackup.Click += async (s, e) => {
+                BackupRepository repo = new BackupRepository(AppSettings.ConnectionString);
+                await repo.CreateBackupAsync("C:\\Backups\\SupermarketDB.bak");
+                MessageBox.Show("Backup Created Successfully! / تم إنشاء نسخة احتياطية بنجاح");
+            };
+
             Button btnRestore = new Button { Text = "Restore / استرجاع", Location = new Point(50, 120), Size = new Size(200, 50), BackColor = Color.Maroon, ForeColor = Color.White };
+            btnRestore.Click += async (s, e) => {
+                BackupRepository repo = new BackupRepository(AppSettings.ConnectionString);
+                await repo.RestoreBackupAsync("C:\\Backups\\SupermarketDB.bak");
+                MessageBox.Show("Database Restored Successfully! / تم استعادة قاعدة البيانات بنجاح");
+            };
             tabBackup.Controls.AddRange(new Control[] { btnBackup, btnRestore });
 
             tabs.TabPages.AddRange(new TabPage[] { tabGeneral, tabBackup });

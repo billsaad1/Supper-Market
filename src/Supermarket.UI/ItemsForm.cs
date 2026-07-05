@@ -30,7 +30,7 @@ namespace Supermarket.UI
             dgvItems = new DataGridView { Dock = DockStyle.Fill, AutoGenerateColumns = true, SelectionMode = DataGridViewSelectionMode.FullRowSelect, ReadOnly = true };
             btnAdd = new Button { Text = "Add Item / إضافة صنف", Dock = DockStyle.Bottom, Height = 40 };
             btnAdd.Click += (s, e) => {
-                var details = new ItemDetailsForm();
+                var details = new AdvancedItemForm();
                 if (details.ShowDialog() == DialogResult.OK) LoadData();
             };
 

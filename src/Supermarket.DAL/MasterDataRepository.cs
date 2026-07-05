@@ -17,36 +17,33 @@ namespace Supermarket.DAL
             _connectionString = connectionString;
         }
 
-        // Categories CRUD
-        public async Task<int> UpsertCategoryAsync(int id, string name, string description)
+        public async Task<IEnumerable<Item>> GetAllItemsAsync()
         {
             using (IDbConnection db = new SqlConnection(_connectionString))
             {
-                string sql = id == 0
-                    ? "INSERT INTO Categories (CategoryName, Description) VALUES (@name, @description)"
-                    : "UPDATE Categories SET CategoryName = @name, Description = @description WHERE CategoryID = @id";
-                return await db.ExecuteAsync(sql, new { id, name, description });
+                return await db.QueryAsync<Item>("SELECT * FROM Items");
             }
         }
 
-        // Stores CRUD
-        public async Task<int> UpsertStoreAsync(int id, string name, string location, bool isMain)
+        public async Task<int> UpsertItemAsync(Item item)
         {
             using (IDbConnection db = new SqlConnection(_connectionString))
             {
-                string sql = id == 0
-                    ? "INSERT INTO Stores (StoreName, Location, IsMainStore) VALUES (@name, @location, @isMain)"
-                    : "UPDATE Stores SET StoreName = @name, Location = @location, IsMainStore = @isMain WHERE StoreID = @id";
-                return await db.ExecuteAsync(sql, new { id, name, location, isMain });
+                string sql = item.ItemID == 0
+                    ? @"INSERT INTO Items (Barcode, ItemName, CategoryID, Unit, CostPrice, SalePrice, TaxRate, MinimumStockLevel)
+                        VALUES (@Barcode, @ItemName, @CategoryID, @Unit, @CostPrice, @SalePrice, @TaxRate, @MinimumStockLevel)"
+                    : @"UPDATE Items SET Barcode = @Barcode, ItemName = @ItemName, CategoryID = @CategoryID,
+                        Unit = @Unit, CostPrice = @CostPrice, SalePrice = @SalePrice, TaxRate = @TaxRate,
+                        MinimumStockLevel = @MinimumStockLevel WHERE ItemID = @ItemID";
+                return await db.ExecuteAsync(sql, item);
             }
         }
 
-        // Generic Delete
-        public async Task<int> DeleteRecordAsync(string table, string column, int id)
+        public async Task<Item> GetItemByBarcodeAsync(string barcode)
         {
             using (IDbConnection db = new SqlConnection(_connectionString))
             {
-                return await db.ExecuteAsync($"DELETE FROM {table} WHERE {column} = @id", new { id });
+                return await db.QueryFirstOrDefaultAsync<Item>("SELECT * FROM Items WHERE Barcode = @barcode", new { barcode });
             }
         }
     }

@@ -3,17 +3,19 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Supermarket.DAL;
 
+using Supermarket.Models.Entities;
+
 namespace Supermarket.BLL
 {
     public class BusinessFlowService
     {
-        private readonly PurchaseRepository _purchaseRepo;
+        private readonly IntegratedPurchaseRepository _purchaseRepo;
         private readonly SalesRepository _salesRepo;
         private readonly ReportRepository _reportRepo;
 
         public BusinessFlowService(string connString)
         {
-            _purchaseRepo = new PurchaseRepository(connString);
+            _purchaseRepo = new IntegratedPurchaseRepository(connString);
             _salesRepo = new SalesRepository(connString);
             _reportRepo = new ReportRepository(connString);
         }

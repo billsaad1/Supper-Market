@@ -275,11 +275,29 @@ INSERT INTO ChartOfAccounts (AccountID, AccountNumber, AccountName, AccountType)
 (3, '2101', N'ضريبة المخرجات', 'Liability'),
 (4, '5101', N'تكلفة البضاعة المباعة', 'Expense'),
 (5, '1201', N'المخزون', 'Asset'),
-(6, '1102', N'مدينون - عملاء', 'Asset');
+(6, '1102', N'مدينون - عملاء', 'Asset'),
+(7, '5102', N'تسويات مخزون', 'Expense'),
+(8, '5103', N'عجز الصندوق', 'Expense'),
+(9, '4102', N'زيادة الصندوق', 'Revenue'),
+(10, '4103', N'مرتجعات مبيعات', 'Revenue'),
+(11, '1202', N'ضريبة المدخلات', 'Asset'),
+(12, '2102', N'دائنون - موردون', 'Liability');
 SET IDENTITY_INSERT ChartOfAccounts OFF;
+
+-- Seed default Supplier and Employee for initial UI functionality
+-- Seed default data for initial UI functionality
+INSERT INTO Suppliers (SupplierName, Phone) VALUES (N'المورد الافتراضي', '0500000000');
+INSERT INTO Employees (EmployeeName, JobTitle, Salary) VALUES (N'موظف افتراضي', N'كاشير', 3000);
+INSERT INTO Customers (CustomerName, Phone) VALUES (N'عميل نقدي', '0500000000');
+INSERT INTO Categories (CategoryName) VALUES (N'عام');
 
 INSERT INTO Localization (ResourceKey, ArabicValue, EnglishValue) VALUES
 ('lblUsername', N'اسم المستخدم', 'Username'),
 ('lblPassword', N'كلمة المرور', 'Password'),
-('btnLogin', N'تسجيل الدخول', 'Login');
+('btnLogin', N'تسجيل الدخول', 'Login'),
+('POS / نقطة البيع', N'نقطة البيع', 'Point of Sale'),
+('Purchases / المشتريات', N'المشتريات', 'Purchases'),
+('Reports / التقارير', N'التقارير', 'Reports'),
+('Items / الأصناف', N'الأصناف', 'Items'),
+('Settings / الإعدادات', N'الإعدادات', 'Settings');
 GO

@@ -8,17 +8,22 @@ namespace Supermarket.BLL
     {
         public decimal CalculateDiscount(int itemId, decimal quantity, decimal unitPrice)
         {
-            // Simple Logic: 10% discount for demonstration
-            // Real logic would fetch from Promotions table
-            if (quantity >= 5)
-                return (unitPrice * quantity) * 0.10m;
+            decimal discount = 0;
 
-            return 0;
+            // Percentage Discount Simulation (e.g. 10%)
+            if (quantity >= 3) {
+                discount += (unitPrice * quantity) * 0.10m;
+            }
+
+            return discount;
         }
 
-        public void ApplyBuyOneGetOne(int itemId, ref decimal quantity)
+        public decimal ApplyBogo(int itemId, decimal quantity, decimal unitPrice)
         {
-            // logic for BOGO
+            // Buy 1 Get 1 Free logic
+            // For every 2 items, 1 is free
+            int freeItems = (int)(quantity / 2);
+            return freeItems * unitPrice;
         }
     }
 }

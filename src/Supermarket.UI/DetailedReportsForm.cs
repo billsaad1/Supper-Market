@@ -4,6 +4,7 @@ using System.Windows.Forms;
 using System.Collections.Generic;
 using System.Linq;
 using Supermarket.BLL;
+using Supermarket.DAL;
 
 namespace Supermarket.UI
 {
@@ -25,13 +26,34 @@ namespace Supermarket.UI
 
             TabControl tabs = new TabControl { Dock = DockStyle.Fill, Font = new Font("Segoe UI", 11) };
 
-            tabs.TabPages.Add(CreateReportTab("Sales / المبيعات", async (dgv, from, to) => {
-                var data = await _flowService.GetFinancialSummaryAsync(from, to);
+            tabs.TabPages.Add(CreateReportTab("Income Statement / قائمة الدخل", async (dgv, from, to) => {
+                FinancialReportRepository repo = new FinancialReportRepository(AppSettings.ConnectionString);
+                var data = await repo.GetIncomeStatementAsync(from, to);
                 dgv.DataSource = new List<dynamic> { data };
             }));
 
+            tabs.TabPages.Add(CreateReportTab("Item Movement / حركة صنف", async (dgv, from, to) => {
+                ReportRepository repo = new ReportRepository(AppSettings.ConnectionString);
+                var data = await repo.GetItemMovementAsync(1); // Demo Item 1
+                dgv.DataSource = data.ToList();
+            }));
+
             tabs.TabPages.Add(CreateReportTab("Inventory / المخزون", async (dgv, from, to) => {
-                // Fetch stock data
+                ReportRepository repo = new ReportRepository(AppSettings.ConnectionString);
+                var data = await repo.GetStockShortagesAsync();
+                dgv.DataSource = data.ToList();
+            }));
+
+            tabs.TabPages.Add(CreateReportTab("VAT Return / الإقرار الضريبي", async (dgv, from, to) => {
+                FinancialReportRepository repo = new FinancialReportRepository(AppSettings.ConnectionString);
+                var data = await repo.GetVatReturnAsync(from, to);
+                dgv.DataSource = new List<dynamic> { data };
+            }));
+
+            tabs.TabPages.Add(CreateReportTab("Expiry Dates / تواريخ الصلاحية", async (dgv, from, to) => {
+                ReportRepository repo = new ReportRepository(AppSettings.ConnectionString);
+                var data = await repo.GetExpiryReportAsync(30); // Next 30 days
+                dgv.DataSource = data.ToList();
             }));
 
             this.Controls.Add(tabs);

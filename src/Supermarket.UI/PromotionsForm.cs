@@ -1,9 +1,6 @@
 using System;
 using System.Drawing;
 using System.Windows.Forms;
-using System.Collections.Generic;
-using Dapper;
-using Microsoft.Data.SqlClient;
 
 namespace Supermarket.UI
 {
@@ -17,26 +14,32 @@ namespace Supermarket.UI
 
         private void SetupUI()
         {
-            this.Text = "Manage Promotions / إدارة العروض";
-            this.Size = new Size(800, 500);
+            this.Text = "Promotions Management / إدارة العروض والترويج";
+            this.Size = new Size(900, 600);
 
-            Panel pnlEditor = new Panel { Dock = DockStyle.Top, Height = 120, BackColor = Color.WhiteSmoke };
-            pnlEditor.Controls.Add(new Label { Text = "Promo Name / اسم العرض", Location = new Point(20, 20), AutoSize = true });
-            pnlEditor.Controls.Add(new TextBox { Location = new Point(180, 18), Width = 200 });
+            Panel left = new Panel { Dock = DockStyle.Left, Width = 350, BackColor = Color.WhiteSmoke, Padding = new Padding(20) };
 
-            pnlEditor.Controls.Add(new Label { Text = "Discount % / الخصم", Location = new Point(20, 60), AutoSize = true });
-            pnlEditor.Controls.Add(new NumericUpDown { Location = new Point(180, 58), Width = 100 });
+            left.Controls.Add(new Label { Text = "Promotion Name / اسم العرض", Location = new Point(20, 20), AutoSize = true });
+            left.Controls.Add(new TextBox { Location = new Point(20, 45), Width = 300 });
 
-            Button btnAdd = new Button { Text = "Add / إضافة", Location = new Point(400, 15), Width = 120, Height = 70, BackColor = Color.Purple, ForeColor = Color.White };
-            pnlEditor.Controls.Add(btnAdd);
+            left.Controls.Add(new Label { Text = "Type / النوع", Location = new Point(20, 90), AutoSize = true });
+            ComboBox cbType = new ComboBox { Location = new Point(20, 115), Width = 300 };
+            cbType.Items.AddRange(new string[] { "Percentage Discount / خصم مئوي", "Buy 1 Get 1 / اشتر 1 واحصل على 1", "Fixed Amount / مبلغ ثابت" });
+            left.Controls.Add(cbType);
+
+            left.Controls.Add(new Label { Text = "Value / القيمة", Location = new Point(20, 160), AutoSize = true });
+            left.Controls.Add(new NumericUpDown { Location = new Point(20, 185), Width = 100 });
+
+            Button btnSave = new Button { Text = "Add Promotion / إضافة العرض", Location = new Point(20, 250), Width = 300, Height = 50, BackColor = Color.Purple, ForeColor = Color.White, Font = new Font("Arial", 12, FontStyle.Bold) };
+            left.Controls.Add(btnSave);
 
             DataGridView dgv = new DataGridView { Dock = DockStyle.Fill, BackgroundColor = Color.White };
-            dgv.Columns.Add("ID", "ID");
-            dgv.Columns.Add("Name", "Promo / العرض");
-            dgv.Columns.Add("Disc", "Discount / الخصم");
+            dgv.Columns.Add("Name", "Promotion");
+            dgv.Columns.Add("Type", "Type");
+            dgv.Columns.Add("Val", "Value");
 
             this.Controls.Add(dgv);
-            this.Controls.Add(pnlEditor);
+            this.Controls.Add(left);
 
             LanguageHelper.ApplyLanguage(this);
         }

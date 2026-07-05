@@ -26,6 +26,7 @@ namespace Supermarket.DAL
                 {
                     try
                     {
+                        // 1. Save Invoice Header
                         string invoiceSql = @"INSERT INTO SalesInvoices (InvoiceNumber, CustomerID, StoreID, TotalAmount, TaxAmount, DiscountAmount, NetAmount, PaymentType, CreatedBy, QRCode)
                                               VALUES (@InvoiceNumber, @CustomerID, @StoreID, @TotalAmount, @TaxAmount, @DiscountAmount, @NetAmount, @PaymentType, @CreatedBy, @QRCode);
                                               SELECT CAST(SCOPE_IDENTITY() as int)";
@@ -38,37 +39,50 @@ namespace Supermarket.DAL
                         {
                             item.SalesID = salesId;
 
-                            // Get Average Cost for Accounting
-                            decimal avgCost = await db.QueryFirstOrDefaultAsync<decimal>(
+                            // Get Average Cost for COGS
+                            decimal unitCost = await db.QueryFirstOrDefaultAsync<decimal>(
                                 "SELECT CostPrice FROM Items WHERE ItemID = @ItemID", new { item.ItemID }, transaction);
-                            costOfGoodsSold += (avgCost * item.Quantity);
+                            costOfGoodsSold += (unitCost * item.Quantity);
 
+                            // 2. Save Invoice Items
                             string itemSql = @"INSERT INTO SalesInvoiceItems (SalesID, ItemID, Quantity, UnitPrice, TaxAmount, TotalAmount)
                                                 VALUES (@SalesID, @ItemID, @Quantity, @UnitPrice, @TaxAmount, @TotalAmount)";
                             await db.ExecuteAsync(itemSql, item, transaction);
 
+                            // 3. Update Stock
                             string stockSql = @"UPDATE Stock SET Quantity = Quantity - @Quantity WHERE ItemID = @ItemID AND StoreID = @StoreID";
                             await db.ExecuteAsync(stockSql, new { item.ItemID, invoice.StoreID, item.Quantity }, transaction);
                         }
 
-                        // Generate Accounting Entries
+                        // 4. Accounting Entries
                         int journalId = await db.QuerySingleAsync<int>(
-                            "INSERT INTO JournalEntries (ReferenceNumber, Description, CreatedBy) VALUES (@Ref, @Desc, @User); SELECT CAST(SCOPE_IDENTITY() as int)",
-                            new { Ref = invoice.InvoiceNumber, Desc = "Sales Invoice " + invoice.InvoiceNumber, User = invoice.CreatedBy }, transaction);
+                            "INSERT INTO JournalEntries (Description, CreatedBy) VALUES (@Desc, @User); SELECT CAST(SCOPE_IDENTITY() as int)",
+                            new { Desc = "Sales Invoice: " + invoice.InvoiceNumber, User = invoice.CreatedBy }, transaction);
 
-                        // Account Mapping: Cash=1, Sales=2, Tax=3, COGS=4, Inventory=5, Customers(A/R)=6
-                        int debitAccountId = invoice.PaymentType == "Credit" ? 6 : 1;
+                        // Get Account IDs by Codes
+                        var accounts = await db.QueryAsync<dynamic>(
+                            "SELECT AccountID, AccountNumber FROM ChartOfAccounts WHERE AccountNumber IN ('1101', '4101', '2101', '5101', '1201', '1102')",
+                            null, transaction);
 
-                        // Debit Cash/Customer
-                        await db.ExecuteAsync("INSERT INTO JournalEntryDetails (JournalID, AccountID, Debit, Credit) VALUES (@jid, @accId, @amt, 0)", new { jid = journalId, accId = debitAccountId, amt = invoice.NetAmount }, transaction);
-                        // Credit Sales
-                        await db.ExecuteAsync("INSERT INTO JournalEntryDetails (JournalID, AccountID, Debit, Credit) VALUES (@jid, 2, 0, @amt)", new { jid = journalId, amt = invoice.TotalAmount }, transaction);
-                        // Credit Tax
-                        await db.ExecuteAsync("INSERT INTO JournalEntryDetails (JournalID, AccountID, Debit, Credit) VALUES (@jid, 3, 0, @amt)", new { jid = journalId, amt = invoice.TaxAmount }, transaction);
+                        int cashAcc = accounts.First(a => a.AccountNumber == "1101").AccountID;
+                        int salesAcc = accounts.First(a => a.AccountNumber == "4101").AccountID;
+                        int vatAcc = accounts.First(a => a.AccountNumber == "2101").AccountID;
+                        int cogsAcc = accounts.First(a => a.AccountNumber == "5101").AccountID;
+                        int inventoryAcc = accounts.First(a => a.AccountNumber == "1201").AccountID;
+                        int customerAcc = accounts.First(a => a.AccountNumber == "1102").AccountID;
 
-                        // Entry 2: COGS to Inventory
-                        await db.ExecuteAsync("INSERT INTO JournalEntryDetails (JournalID, AccountID, Debit, Credit) VALUES (@jid, 4, @amt, 0)", new { jid = journalId, amt = costOfGoodsSold }, transaction);
-                        await db.ExecuteAsync("INSERT INTO JournalEntryDetails (JournalID, AccountID, Debit, Credit) VALUES (@jid, 5, 0, @amt)", new { jid = journalId, amt = costOfGoodsSold }, transaction);
+                        int debitAcc = invoice.PaymentType == "Credit" ? customerAcc : cashAcc;
+
+                        // Debit: Cash/Customer
+                        await db.ExecuteAsync("INSERT INTO JournalEntryDetails (JournalID, AccountID, Debit, Credit) VALUES (@jid, @acc, @amt, 0)", new { jid = journalId, acc = debitAcc, amt = invoice.TotalAmount }, transaction);
+                        // Credit: Sales
+                        await db.ExecuteAsync("INSERT INTO JournalEntryDetails (JournalID, AccountID, Debit, Credit) VALUES (@jid, @acc, 0, @amt)", new { jid = journalId, acc = salesAcc, amt = invoice.NetAmount }, transaction);
+                        // Credit: VAT
+                        await db.ExecuteAsync("INSERT INTO JournalEntryDetails (JournalID, AccountID, Debit, Credit) VALUES (@jid, @acc, 0, @amt)", new { jid = journalId, acc = vatAcc, amt = invoice.TaxAmount }, transaction);
+
+                        // Entry: COGS to Inventory
+                        await db.ExecuteAsync("INSERT INTO JournalEntryDetails (JournalID, AccountID, Debit, Credit) VALUES (@jid, @acc, @amt, 0)", new { jid = journalId, acc = cogsAcc, amt = costOfGoodsSold }, transaction);
+                        await db.ExecuteAsync("INSERT INTO JournalEntryDetails (JournalID, AccountID, Debit, Credit) VALUES (@jid, @acc, 0, @amt)", new { jid = journalId, acc = inventoryAcc, amt = costOfGoodsSold }, transaction);
 
                         transaction.Commit();
                         return salesId;
@@ -81,31 +95,5 @@ namespace Supermarket.DAL
                 }
             }
         }
-    }
-
-    public class SalesInvoice
-    {
-        public int SalesID { get; set; }
-        public string InvoiceNumber { get; set; }
-        public int? CustomerID { get; set; }
-        public int StoreID { get; set; }
-        public decimal TotalAmount { get; set; }
-        public decimal TaxAmount { get; set; }
-        public decimal DiscountAmount { get; set; }
-        public decimal NetAmount { get; set; }
-        public string PaymentType { get; set; }
-        public int CreatedBy { get; set; }
-        public string QRCode { get; set; }
-    }
-
-    public class SalesInvoiceItem
-    {
-        public int SalesItemID { get; set; }
-        public int SalesID { get; set; }
-        public int ItemID { get; set; }
-        public decimal Quantity { get; set; }
-        public decimal UnitPrice { get; set; }
-        public decimal TaxAmount { get; set; }
-        public decimal TotalAmount { get; set; }
     }
 }

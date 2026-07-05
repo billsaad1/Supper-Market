@@ -1,6 +1,6 @@
-using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Linq;
 using System.Threading.Tasks;
 using Dapper;
 using Microsoft.Data.SqlClient;
@@ -32,15 +32,18 @@ namespace Supermarket.DAL
                         // 2. Journal Entry
                         int jId = await db.QuerySingleAsync<int>("INSERT INTO JournalEntries (Description, CreatedBy) VALUES (@notes, @userId); SELECT CAST(SCOPE_IDENTITY() as int)", new { notes, userId }, transaction);
 
+                        var accounts = await db.QueryAsync<dynamic>("SELECT AccountID, AccountNumber FROM ChartOfAccounts WHERE AccountNumber = '1101'", null, transaction);
+                        int cashAcc = accounts.First().AccountID;
+
                         if (type == "Receipt") // Receipt from Customer (Debit Cash, Credit Customer)
                         {
-                            await db.ExecuteAsync("INSERT INTO JournalEntryDetails (JournalID, AccountID, Debit, Credit) VALUES (@jId, 1, @amount, 0)", new { jId, amount }, transaction);
+                            await db.ExecuteAsync("INSERT INTO JournalEntryDetails (JournalID, AccountID, Debit, Credit) VALUES (@jId, @cashAcc, @amount, 0)", new { jId, cashAcc, amount }, transaction);
                             await db.ExecuteAsync("INSERT INTO JournalEntryDetails (JournalID, AccountID, Debit, Credit) VALUES (@jId, @accountId, 0, @amount)", new { jId, accountId, amount }, transaction);
                         }
                         else // Payment to Supplier (Debit Supplier, Credit Cash)
                         {
                             await db.ExecuteAsync("INSERT INTO JournalEntryDetails (JournalID, AccountID, Debit, Credit) VALUES (@jId, @accountId, @amount, 0)", new { jId, accountId, amount }, transaction);
-                            await db.ExecuteAsync("INSERT INTO JournalEntryDetails (JournalID, AccountID, Debit, Credit) VALUES (@jId, 1, 0, @amount)", new { jId, amount }, transaction);
+                            await db.ExecuteAsync("INSERT INTO JournalEntryDetails (JournalID, AccountID, Debit, Credit) VALUES (@jId, @cashAcc, 0, @amount)", new { jId, cashAcc, amount }, transaction);
                         }
 
                         transaction.Commit();

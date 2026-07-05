@@ -13,29 +13,21 @@ namespace Supermarket.UI
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
-            RunAppAsync();
-            Application.Run(); // Keep the message loop running
-        }
-
-        static async void RunAppAsync()
-        {
-            // Initialize Localization
+            // Initialize Localization (Synchronous wait for essential async startup data)
             LanguageHelper.TranslationService = new TranslationService(AppSettings.ConnectionString);
-            try {
-                await LanguageHelper.TranslationService.LoadResourcesAsync();
-            } catch { }
-
-            LoginForm login = new LoginForm();
-            if (login.ShowDialog() == DialogResult.OK)
+            try
             {
-                string role = login.Tag?.ToString() ?? "Admin";
-                MainForm main = new MainForm(role);
-                main.FormClosed += (s, e) => Application.Exit();
-                main.Show();
+                LanguageHelper.TranslationService.LoadResourcesAsync().GetAwaiter().GetResult();
             }
-            else
+            catch { /* Fallback to default if DB is not ready */ }
+
+            using (LoginForm login = new LoginForm())
             {
-                Application.Exit();
+                if (login.ShowDialog() == DialogResult.OK)
+                {
+                    string role = login.Tag?.ToString() ?? "Admin";
+                    Application.Run(new MainForm(role));
+                }
             }
         }
     }

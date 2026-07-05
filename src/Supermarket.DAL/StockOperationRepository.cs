@@ -1,6 +1,6 @@
-using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Linq;
 using System.Threading.Tasks;
 using Dapper;
 using Microsoft.Data.SqlClient;
@@ -34,17 +34,26 @@ namespace Supermarket.DAL
                             new { itemId, storeId, type, quantityChange }, transaction);
 
                         // 3. Accounting Entry (Simplified: Loss or Gain)
-                        // Account 5 (Inventory), Account 7 (Inventory Adjustment Loss/Gain)
                         int journalId = await db.QuerySingleAsync<int>(
                             "INSERT INTO JournalEntries (Description, CreatedBy) VALUES (@Desc, @User); SELECT CAST(SCOPE_IDENTITY() as int)",
                             new { Desc = "Stock " + type, User = userId }, transaction);
 
+                        var accounts = await db.QueryAsync<dynamic>(
+                            "SELECT AccountID, AccountNumber FROM ChartOfAccounts WHERE AccountNumber IN ('1201', '5102')",
+                            null, transaction);
+
+                        int inventoryAcc = accounts.First(a => a.AccountNumber == "1201").AccountID;
+                        int adjustmentAcc = accounts.First(a => a.AccountNumber == "5102").AccountID;
+
+                        decimal cost = await db.QueryFirstOrDefaultAsync<decimal>("SELECT CostPrice FROM Items WHERE ItemID = @itemId", new { itemId }, transaction);
+                        decimal totalImpact = Math.Abs(quantityChange * cost);
+
                         if (quantityChange < 0) {
-                            await db.ExecuteAsync("INSERT INTO JournalEntryDetails (JournalID, AccountID, Debit, Credit) VALUES (@jid, 7, @amt, 0)", new { jid = journalId, amt = Math.Abs(quantityChange * 10) }, transaction); // Dummy cost 10
-                            await db.ExecuteAsync("INSERT INTO JournalEntryDetails (JournalID, AccountID, Debit, Credit) VALUES (@jid, 5, 0, @amt)", new { jid = journalId, amt = Math.Abs(quantityChange * 10) }, transaction);
+                            await db.ExecuteAsync("INSERT INTO JournalEntryDetails (JournalID, AccountID, Debit, Credit) VALUES (@jid, @adjAcc, @amt, 0)", new { jid = journalId, adjAcc = adjustmentAcc, amt = totalImpact }, transaction);
+                            await db.ExecuteAsync("INSERT INTO JournalEntryDetails (JournalID, AccountID, Debit, Credit) VALUES (@jid, @invAcc, 0, @amt)", new { jid = journalId, invAcc = inventoryAcc, amt = totalImpact }, transaction);
                         } else {
-                            await db.ExecuteAsync("INSERT INTO JournalEntryDetails (JournalID, AccountID, Debit, Credit) VALUES (@jid, 5, @amt, 0)", new { jid = journalId, amt = quantityChange * 10 }, transaction);
-                            await db.ExecuteAsync("INSERT INTO JournalEntryDetails (JournalID, AccountID, Debit, Credit) VALUES (@jid, 7, 0, @amt)", new { jid = journalId, amt = quantityChange * 10 }, transaction);
+                            await db.ExecuteAsync("INSERT INTO JournalEntryDetails (JournalID, AccountID, Debit, Credit) VALUES (@jid, @invAcc, @amt, 0)", new { jid = journalId, invAcc = inventoryAcc, amt = totalImpact }, transaction);
+                            await db.ExecuteAsync("INSERT INTO JournalEntryDetails (JournalID, AccountID, Debit, Credit) VALUES (@jid, @adjAcc, 0, @amt)", new { jid = journalId, adjAcc = adjustmentAcc, amt = totalImpact }, transaction);
                         }
 
                         transaction.Commit();
