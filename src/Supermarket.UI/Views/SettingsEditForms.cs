@@ -3,7 +3,7 @@ using System;
 using System.Drawing;
 using System.Windows.Forms;
 
-namespace Supermarket.UI.Views
+namespace Supermarket.UI.Views.SettingsEditForms
 {
     public partial class CategoryEditForm : Form
     {

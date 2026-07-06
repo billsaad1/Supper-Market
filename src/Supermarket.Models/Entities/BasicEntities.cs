@@ -22,6 +22,13 @@ namespace Supermarket.Models.Entities
         public bool IsMainStore { get; set; }
     }
 
+    public class Category
+    {
+        public int CategoryID { get; set; }
+        public string CategoryName { get; set; }
+        public string Description { get; set; }
+    }
+
     public class Item
     {
         public int ItemID { get; set; }

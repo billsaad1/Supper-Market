@@ -30,11 +30,18 @@ namespace Supermarket.UI.Views
         {
             this.Text = "Purchase Invoice / فاتورة مشتريات";
             this.Size = new Size(1000, 700);
+            this.StartPosition = FormStartPosition.CenterScreen;
 
-            Panel top = new Panel { Dock = DockStyle.Top, Height = 100, BackColor = Color.WhiteSmoke };
-            txtBarcode = new TextBox { Location = new Point(20, 20), Width = 200, Font = new Font("Arial", 14), PlaceholderText = "Barcode..." };
-            txtQty = new TextBox { Location = new Point(230, 20), Width = 80, Font = new Font("Arial", 14), PlaceholderText = "Qty" };
-            txtPrice = new TextBox { Location = new Point(320, 20), Width = 100, Font = new Font("Arial", 14), PlaceholderText = "Price" };
+            Panel top = new Panel { Dock = DockStyle.Top, Height = 120, BackColor = Color.WhiteSmoke };
+
+            Label lblBarcode = new Label { Text = "Barcode / باركود", Location = new Point(20, 10), AutoSize = true };
+            txtBarcode = new TextBox { Location = new Point(20, 35), Width = 200, Font = new Font("Arial", 12), PlaceholderText = "Barcode..." };
+
+            Label lblQty = new Label { Text = "Qty / الكمية", Location = new Point(230, 10), AutoSize = true };
+            txtQty = new TextBox { Location = new Point(230, 35), Width = 80, Font = new Font("Arial", 12), PlaceholderText = "Qty" };
+
+            Label lblPrice = new Label { Text = "Price / السعر", Location = new Point(320, 10), AutoSize = true };
+            txtPrice = new TextBox { Location = new Point(320, 35), Width = 100, Font = new Font("Arial", 12), PlaceholderText = "Price" };
             Button btnAdd = new Button { Text = "Add / إضافة", Location = new Point(430, 18), Width = 100, Height = 35, BackColor = Color.Teal, ForeColor = Color.White };
             btnAdd.Click += BtnAdd_Click;
 
@@ -48,7 +55,7 @@ namespace Supermarket.UI.Views
                 }
             };
 
-            top.Controls.AddRange(new Control[] { txtBarcode, txtQty, txtPrice, btnAdd });
+            top.Controls.AddRange(new Control[] { lblBarcode, txtBarcode, lblQty, txtQty, lblPrice, txtPrice, btnAdd });
 
             dgvItems = new DataGridView { Dock = DockStyle.Fill, AllowUserToAddRows = false, AutoGenerateColumns = false, BackgroundColor = Color.White };
             dgvItems.Columns.Add(new DataGridViewTextBoxColumn { Name = "Name", HeaderText = "Item Name", Width = 300 });

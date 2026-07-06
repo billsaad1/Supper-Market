@@ -52,5 +52,23 @@ namespace Supermarket.DAL
                 return await db.ExecuteAsync(sql, item);
             }
         }
+
+        // Categories
+        public async Task<IEnumerable<Category>> GetAllCategoriesAsync()
+        {
+            using (IDbConnection db = new SqlConnection(_connectionString))
+            {
+                return await db.QueryAsync<Category>("SELECT * FROM Categories");
+            }
+        }
+
+        public async Task<int> AddCategoryAsync(Category category)
+        {
+            using (IDbConnection db = new SqlConnection(_connectionString))
+            {
+                string sql = "INSERT INTO Categories (CategoryName, Description) VALUES (@CategoryName, @Description)";
+                return await db.ExecuteAsync(sql, category);
+            }
+        }
     }
 }

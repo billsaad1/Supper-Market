@@ -82,6 +82,15 @@ namespace Supermarket.UI.Views
                 AddMenuButton("Reports / التقارير", ref y, (s, e) => OpenForm(new DetailedReportsForm()));
             }
 
+            if (PermissionsManager.CanAccess(_userRole, "Settings")) {
+                AddSectionLabel("--- SYSTEM ---", ref y);
+                AddMenuButton("Stores / المخازن", ref y, (s, e) => OpenForm(new StoresForm()));
+                AddMenuButton("Permissions / الصلاحيات", ref y, (s, e) => OpenForm(new PermissionsForm()));
+                AddMenuButton("Database / قاعدة البيانات", ref y, (s, e) => {
+                    using (var dbSet = new DatabaseSettingsForm()) dbSet.ShowDialog();
+                });
+            }
+
             this.Controls.Add(headerPanel);
             this.Controls.Add(sidePanel);
 

@@ -148,21 +148,38 @@ namespace Supermarket.UI.Views
                 };
 
                 List<SalesInvoiceItem> items = new List<SalesInvoiceItem>();
+                List<ReceiptItem> printItems = new List<ReceiptItem>();
+
                 foreach (DataGridViewRow row in dgvInvoice.Rows) {
+                    decimal qty = Convert.ToDecimal(row.Cells["Qty"].Value);
+                    decimal price = Convert.ToDecimal(row.Cells["UnitPrice"].Value);
+
                     items.Add(new SalesInvoiceItem {
                         ItemID = (int)row.Cells["ItemID"].Value,
-                        Quantity = Convert.ToDecimal(row.Cells["Qty"].Value),
-                        UnitPrice = Convert.ToDecimal(row.Cells["UnitPrice"].Value),
-                        TaxAmount = Convert.ToDecimal(row.Cells["Total"].Value) * 0.15m,
-                        TotalAmount = Convert.ToDecimal(row.Cells["Total"].Value) * 1.15m
+                        Quantity = qty,
+                        UnitPrice = price,
+                        TaxAmount = (qty * price) * 0.15m,
+                        TotalAmount = (qty * price) * 1.15m
+                    });
+
+                    printItems.Add(new ReceiptItem {
+                        Name = row.Cells["Item"].Value.ToString(),
+                        Qty = qty,
+                        Price = price
                     });
                 }
 
                 await _flowService.RecordSaleAsync(invoice, items);
 
+                // Print Receipt
+                new ReceiptPrinter().PrintReceipt(
+                    invoice.InvoiceNumber, "Cashier", printItems,
+                    netAmount, tax, totalWithTax, invoice.QRCode);
+
                 MessageBox.Show("Sale Saved & Printed! / تم حفظ البيع والطباعة");
                 dgvInvoice.Rows.Clear();
                 UpdateTotal();
+                txtBarcode.Focus();
             }
         }
 
