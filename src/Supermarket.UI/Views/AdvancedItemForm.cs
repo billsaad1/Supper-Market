@@ -12,7 +12,7 @@ namespace Supermarket.UI.Views
     {
         private MasterDataRepository _repo;
         private Item _item;
-        private TextBox txtBarcode, txtName, txtCost, txtSale, txtMin;
+        private TextBox txtBarcode, txtName, txtCost, txtSale, txtMin, txtTax, txtUnit;
         private ComboBox cbCategory;
         private CheckBox chkActive;
 
@@ -54,12 +54,18 @@ namespace Supermarket.UI.Views
             tabPrices.Controls.Add(new Label { Text = "Sale Price / البيع", Location = new Point(20, 60), AutoSize = true });
             txtSale = new TextBox { Location = new Point(150, 58), Width = 150, Text = _item.SalePrice.ToString() };
             tabPrices.Controls.Add(txtSale);
+            tabPrices.Controls.Add(new Label { Text = "Tax Rate % / الضريبة", Location = new Point(20, 100), AutoSize = true });
+            txtTax = new TextBox { Location = new Point(150, 98), Width = 150, Text = _item.TaxRate.ToString() };
+            tabPrices.Controls.Add(txtTax);
 
             // Tab 3: Stock
             TabPage tabStock = new TabPage("Stock / المخزون");
             tabStock.Controls.Add(new Label { Text = "Min Level / الحد الأدنى", Location = new Point(20, 20), AutoSize = true });
             txtMin = new TextBox { Location = new Point(150, 18), Width = 150, Text = _item.MinimumStockLevel.ToString() };
             tabStock.Controls.Add(txtMin);
+            tabStock.Controls.Add(new Label { Text = "Unit / الوحدة", Location = new Point(20, 60), AutoSize = true });
+            txtUnit = new TextBox { Location = new Point(150, 58), Width = 150, Text = _item.Unit };
+            tabStock.Controls.Add(txtUnit);
 
             // Tab 4: Status
             TabPage tabStatus = new TabPage("Status / الحالة");
@@ -72,9 +78,15 @@ namespace Supermarket.UI.Views
             btnSave.Click += async (s, e) => {
                 _item.Barcode = txtBarcode.Text;
                 _item.ItemName = txtName.Text;
-                _item.CostPrice = decimal.Parse(txtCost.Text);
-                _item.SalePrice = decimal.Parse(txtSale.Text);
-                _item.MinimumStockLevel = decimal.Parse(txtMin.Text);
+                _item.CostPrice = decimal.Parse(txtCost.Text ?? "0");
+                _item.SalePrice = decimal.Parse(txtSale.Text ?? "0");
+                _item.TaxRate = decimal.Parse(txtTax.Text ?? "0");
+                _item.MinimumStockLevel = decimal.Parse(txtMin.Text ?? "0");
+                _item.Unit = txtUnit.Text;
+                if (cbCategory.SelectedItem != null)
+                {
+                    _item.CategoryID = ((CategoryItem)cbCategory.SelectedItem).ID;
+                }
                 await _repo.UpsertItemAsync(_item);
                 MessageBox.Show("Item Saved! / تم حفظ الصنف بنجاح");
                 this.DialogResult = DialogResult.OK;
@@ -88,17 +100,32 @@ namespace Supermarket.UI.Views
 
         private async void LoadCategoriesForEdit()
         {
-            string conn = AppSettings.ConnectionString;
-            using (var db = new Microsoft.Data.SqlClient.SqlConnection(conn))
+            var cats = await _repo.GetAllCategoriesAsync();
+            cbCategory.Items.Clear();
+            foreach (var cat in cats)
             {
-                var cats = await db.QueryAsync<dynamic>("SELECT CategoryID, CategoryName FROM Categories");
-                foreach (var cat in cats)
-                {
-                    cbCategory.Items.Add(new { ID = (int)cat.CategoryID, Name = (string)cat.CategoryName });
-                }
-                cbCategory.DisplayMember = "Name";
-                cbCategory.ValueMember = "ID";
+                cbCategory.Items.Add(new CategoryItem { ID = cat.CategoryID, Name = cat.CategoryName });
             }
+            cbCategory.DisplayMember = "Name";
+            cbCategory.ValueMember = "ID";
+
+            if (_item.CategoryID.HasValue)
+            {
+                foreach (CategoryItem ci in cbCategory.Items)
+                {
+                    if (ci.ID == _item.CategoryID.Value)
+                    {
+                        cbCategory.SelectedItem = ci;
+                        break;
+                    }
+                }
+            }
+        }
+
+        private class CategoryItem
+        {
+            public int ID { get; set; }
+            public string Name { get; set; }
         }
 
         private void InitializeComponent() { }

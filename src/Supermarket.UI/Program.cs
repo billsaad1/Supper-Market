@@ -20,6 +20,7 @@ namespace Supermarket.UI
 
             // Auto-Initialize Database
             bool dbReady = false;
+            string lastError = "";
             try
             {
                 string scriptPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "database_schema.sql");
@@ -34,19 +35,32 @@ namespace Supermarket.UI
                     Supermarket.DAL.DatabaseInitializer.InitializeDatabaseAsync(AppSettings.ConnectionString, script).GetAwaiter().GetResult();
                     dbReady = true;
                 }
+                else
+                {
+                    // If no script, just check if we can connect
+                    using (var conn = new Microsoft.Data.SqlClient.SqlConnection(AppSettings.ConnectionString))
+                    {
+                        conn.Open();
+                        dbReady = true;
+                    }
+                }
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Database Auto-Init Failed: " + ex.Message);
+                lastError = ex.Message;
+                Console.WriteLine("Database Connection/Init Failed: " + ex.Message);
             }
 
-            // If DB not ready and no config exists, prompt for settings
-            if (!dbReady && !System.IO.File.Exists(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.txt")))
+            // If DB not ready, prompt for settings
+            if (!dbReady)
             {
+                MessageBox.Show($"Could not connect to database / تعذر الاتصال بقاعدة البيانات:\n{lastError}\n\nPlease verify settings.", "Connection Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 using (var dbSet = new DatabaseSettingsForm())
                 {
-                    dbSet.ShowDialog();
-                    Application.Restart();
+                    if (dbSet.ShowDialog() == DialogResult.OK)
+                    {
+                        Application.Restart();
+                    }
                     return;
                 }
             }

@@ -13,8 +13,10 @@ namespace Supermarket.UI.Views
         private DataGridView dgvItems;
         private TextBox txtBarcode, txtQty, txtPrice;
         private Label lblTotal;
+        private ComboBox cbSupplier, cbStore;
         private IntegratedPurchaseRepository _purchaseRepo;
         private MasterDataRepository _itemRepo;
+        private ContactRepository _contactRepo;
         private List<PurchaseInvoiceItem> _itemList = new List<PurchaseInvoiceItem>();
 
         public PurchaseForm()
@@ -23,7 +25,9 @@ namespace Supermarket.UI.Views
             string conn = AppSettings.ConnectionString;
             _purchaseRepo = new IntegratedPurchaseRepository(conn);
             _itemRepo = new MasterDataRepository(conn);
+            _contactRepo = new ContactRepository(conn);
             SetupUI();
+            LoadMetadata();
         }
 
         private void SetupUI()
@@ -34,15 +38,21 @@ namespace Supermarket.UI.Views
 
             Panel top = new Panel { Dock = DockStyle.Top, Height = 120, BackColor = Color.WhiteSmoke };
 
-            Label lblBarcode = new Label { Text = "Barcode / باركود", Location = new Point(20, 10), AutoSize = true };
-            txtBarcode = new TextBox { Location = new Point(20, 35), Width = 200, Font = new Font("Arial", 12), PlaceholderText = "Barcode..." };
+            Label lblSupplier = new Label { Text = "Supplier / المورد", Location = new Point(20, 10), AutoSize = true };
+            cbSupplier = new ComboBox { Location = new Point(20, 30), Width = 200, DropDownStyle = ComboBoxStyle.DropDownList };
 
-            Label lblQty = new Label { Text = "Qty / الكمية", Location = new Point(230, 10), AutoSize = true };
-            txtQty = new TextBox { Location = new Point(230, 35), Width = 80, Font = new Font("Arial", 12), PlaceholderText = "Qty" };
+            Label lblStore = new Label { Text = "Store / المخزن", Location = new Point(230, 10), AutoSize = true };
+            cbStore = new ComboBox { Location = new Point(230, 30), Width = 200, DropDownStyle = ComboBoxStyle.DropDownList };
 
-            Label lblPrice = new Label { Text = "Price / السعر", Location = new Point(320, 10), AutoSize = true };
-            txtPrice = new TextBox { Location = new Point(320, 35), Width = 100, Font = new Font("Arial", 12), PlaceholderText = "Price" };
-            Button btnAdd = new Button { Text = "Add / إضافة", Location = new Point(430, 18), Width = 100, Height = 35, BackColor = Color.Teal, ForeColor = Color.White };
+            Label lblBarcode = new Label { Text = "Barcode / باركود", Location = new Point(20, 60), AutoSize = true };
+            txtBarcode = new TextBox { Location = new Point(20, 85), Width = 200, Font = new Font("Arial", 12), PlaceholderText = "Barcode..." };
+
+            Label lblQty = new Label { Text = "Qty / الكمية", Location = new Point(230, 60), AutoSize = true };
+            txtQty = new TextBox { Location = new Point(230, 85), Width = 80, Font = new Font("Arial", 12), PlaceholderText = "Qty" };
+
+            Label lblPrice = new Label { Text = "Price / السعر", Location = new Point(320, 60), AutoSize = true };
+            txtPrice = new TextBox { Location = new Point(320, 85), Width = 100, Font = new Font("Arial", 12), PlaceholderText = "Price" };
+            Button btnAdd = new Button { Text = "Add / إضافة", Location = new Point(430, 75), Width = 100, Height = 35, BackColor = Color.Teal, ForeColor = Color.White };
             btnAdd.Click += BtnAdd_Click;
 
             txtBarcode.KeyDown += async (s, e) => {
@@ -55,7 +65,7 @@ namespace Supermarket.UI.Views
                 }
             };
 
-            top.Controls.AddRange(new Control[] { lblBarcode, txtBarcode, lblQty, txtQty, lblPrice, txtPrice, btnAdd });
+            top.Controls.AddRange(new Control[] { lblSupplier, cbSupplier, lblStore, cbStore, lblBarcode, txtBarcode, lblQty, txtQty, lblPrice, txtPrice, btnAdd });
 
             dgvItems = new DataGridView { Dock = DockStyle.Fill, AllowUserToAddRows = false, AutoGenerateColumns = false, BackgroundColor = Color.White };
             dgvItems.Columns.Add(new DataGridViewTextBoxColumn { Name = "Name", HeaderText = "Item Name", Width = 300 });
@@ -102,21 +112,48 @@ namespace Supermarket.UI.Views
             lblTotal.Text = $"Total: {total:F2} SR";
         }
 
+        private async void LoadMetadata()
+        {
+            var suppliers = await _contactRepo.GetAllSuppliersAsync();
+            cbSupplier.DataSource = suppliers;
+            cbSupplier.DisplayMember = "SupplierName";
+            cbSupplier.ValueMember = "SupplierID";
+
+            var stores = await _itemRepo.GetAllStoresAsync();
+            cbStore.DataSource = stores;
+            cbStore.DisplayMember = "StoreName";
+            cbStore.ValueMember = "StoreID";
+        }
+
         private async void BtnSave_Click(object sender, EventArgs e)
         {
             if (_itemList.Count == 0) return;
+            if (cbSupplier.SelectedValue == null || cbStore.SelectedValue == null)
+            {
+                MessageBox.Show("Please select supplier and store / يرجى اختيار المورد والمخزن");
+                return;
+            }
 
             decimal total = decimal.Parse(lblTotal.Text.Replace("Total: ", "").Replace(" SR", ""));
             var invoice = new PurchaseInvoice {
                 InvoiceNumber = "PUR-" + DateTime.Now.Ticks,
-                StoreID = 1, SupplierID = 1,
+                StoreID = (int)cbStore.SelectedValue,
+                SupplierID = (int)cbSupplier.SelectedValue,
                 TotalAmount = total, TaxAmount = 0, NetAmount = total,
-                CreatedBy = 1
+                CreatedBy = 1,
+                PaymentType = "Cash"
             };
 
-            await _purchaseRepo.SavePurchaseInvoiceAsync(invoice, _itemList);
-            MessageBox.Show("Purchase Invoice Saved & Ledger Updated! / تم حفظ الفاتورة وترحيل الحسابات والمخزن");
-            this.Close();
+            try
+            {
+                await _purchaseRepo.SavePurchaseInvoiceAsync(invoice, _itemList);
+                MessageBox.Show("Purchase Invoice Saved & Ledger Updated! / تم حفظ الفاتورة وترحيل الحسابات والمخزن");
+                this.Close();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error saving invoice: {ex.Message}");
+            }
         }
 
         private void InitializeComponent() { }

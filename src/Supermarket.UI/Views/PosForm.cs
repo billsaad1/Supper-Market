@@ -105,7 +105,7 @@ namespace Supermarket.UI.Views
                 bool found = false;
                 foreach (DataGridViewRow row in dgvInvoice.Rows) {
                     if ((int)row.Cells["ItemID"].Value == item.ItemID) {
-                        decimal newQty = Convert.ToDecimal(row.Cells["Qty"].Value) + 1;
+                        decimal newQty = Convert.ToDecimal(row.Cells["Qty"].Value) + qty;
                         row.Cells["Qty"].Value = newQty;
                         row.Cells["Total"].Value = newQty * (decimal)row.Cells["UnitPrice"].Value;
                         found = true;

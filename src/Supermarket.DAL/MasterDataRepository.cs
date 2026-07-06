@@ -46,5 +46,43 @@ namespace Supermarket.DAL
                 return await db.QueryFirstOrDefaultAsync<Item>("SELECT * FROM Items WHERE Barcode = @barcode", new { barcode });
             }
         }
+
+        public async Task<IEnumerable<Category>> GetAllCategoriesAsync()
+        {
+            using (IDbConnection db = new SqlConnection(_connectionString))
+            {
+                return await db.QueryAsync<Category>("SELECT * FROM Categories");
+            }
+        }
+
+        public async Task<int> UpsertCategoryAsync(Category category)
+        {
+            using (IDbConnection db = new SqlConnection(_connectionString))
+            {
+                string sql = category.CategoryID == 0
+                    ? "INSERT INTO Categories (CategoryName, Description) VALUES (@CategoryName, @Description)"
+                    : "UPDATE Categories SET CategoryName = @CategoryName, Description = @Description WHERE CategoryID = @CategoryID";
+                return await db.ExecuteAsync(sql, category);
+            }
+        }
+
+        public async Task<IEnumerable<Store>> GetAllStoresAsync()
+        {
+            using (IDbConnection db = new SqlConnection(_connectionString))
+            {
+                return await db.QueryAsync<Store>("SELECT * FROM Stores");
+            }
+        }
+
+        public async Task<int> UpsertStoreAsync(Store store)
+        {
+            using (IDbConnection db = new SqlConnection(_connectionString))
+            {
+                string sql = store.StoreID == 0
+                    ? "INSERT INTO Stores (StoreName, Location, IsMainStore) VALUES (@StoreName, @Location, @IsMainStore)"
+                    : "UPDATE Stores SET StoreName = @StoreName, Location = @Location, IsMainStore = @IsMainStore WHERE StoreID = @StoreID";
+                return await db.ExecuteAsync(sql, store);
+            }
+        }
     }
 }

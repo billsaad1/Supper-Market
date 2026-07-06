@@ -8,15 +8,18 @@ using Supermarket.UI.Views.SettingsEditForms;
 
 namespace Supermarket.UI.Views
 {
+    using System.Linq;
+    using Supermarket.Models.Entities;
+
     public partial class CategoriesForm : Form
     {
         private DataGridView dgv;
-        private SettingsRepository _repo;
+        private MasterDataRepository _repo;
 
         public CategoriesForm()
         {
             InitializeComponent();
-            _repo = new SettingsRepository(AppSettings.ConnectionString);
+            _repo = new MasterDataRepository(AppSettings.ConnectionString);
             SetupUI();
             LoadData();
         }
@@ -26,9 +29,10 @@ namespace Supermarket.UI.Views
             this.Text = "Categories / المجموعات";
             this.Size = new Size(600, 500);
 
-            dgv = new DataGridView { Dock = DockStyle.Fill, AutoGenerateColumns = true, ReadOnly = true };
+            dgv = new DataGridView { Dock = DockStyle.Fill, AutoGenerateColumns = true, ReadOnly = true, SelectionMode = DataGridViewSelectionMode.FullRowSelect };
 
-            Button btnAdd = new Button { Text = "Add Category / إضافة مجموعة", Dock = DockStyle.Bottom, Height = 40, BackColor = Color.Teal, ForeColor = Color.White };
+            Panel pnlButtons = new Panel { Dock = DockStyle.Bottom, Height = 50 };
+            Button btnAdd = new Button { Text = "Add / إضافة", Width = 100, Height = 40, Location = new Point(10, 5), BackColor = Color.Teal, ForeColor = Color.White };
             btnAdd.Click += (s, e) => {
                 using (var form = new CategoryEditForm())
                 {
@@ -36,14 +40,30 @@ namespace Supermarket.UI.Views
                 }
             };
 
+            Button btnEdit = new Button { Text = "Edit / تعديل", Width = 100, Height = 40, Location = new Point(120, 5), BackColor = Color.Orange, ForeColor = Color.White };
+            btnEdit.Click += (s, e) => {
+                if (dgv.SelectedRows.Count > 0)
+                {
+                    var cat = dgv.SelectedRows[0].DataBoundItem as Category;
+                    using (var form = new CategoryEditForm(cat))
+                    {
+                        if (form.ShowDialog() == DialogResult.OK) LoadData();
+                    }
+                }
+            };
+
+            pnlButtons.Controls.Add(btnAdd);
+            pnlButtons.Controls.Add(btnEdit);
+
             this.Controls.Add(dgv);
-            this.Controls.Add(btnAdd);
+            this.Controls.Add(pnlButtons);
             LanguageHelper.ApplyLanguage(this);
         }
 
         private async void LoadData()
         {
-            dgv.DataSource = (await _repo.GetAllCategoriesAsync()).ToList();
+            var data = await _repo.GetAllCategoriesAsync();
+            dgv.DataSource = data.ToList();
         }
 
         private void InitializeComponent() { }
@@ -52,12 +72,12 @@ namespace Supermarket.UI.Views
     public partial class StoresForm : Form
     {
         private DataGridView dgv;
-        private SettingsRepository _repo;
+        private MasterDataRepository _repo;
 
         public StoresForm()
         {
             InitializeComponent();
-            _repo = new SettingsRepository(AppSettings.ConnectionString);
+            _repo = new MasterDataRepository(AppSettings.ConnectionString);
             SetupUI();
             LoadData();
         }
@@ -67,9 +87,10 @@ namespace Supermarket.UI.Views
             this.Text = "Stores / المخازن";
             this.Size = new Size(600, 500);
 
-            dgv = new DataGridView { Dock = DockStyle.Fill, AutoGenerateColumns = true, ReadOnly = true };
+            dgv = new DataGridView { Dock = DockStyle.Fill, AutoGenerateColumns = true, ReadOnly = true, SelectionMode = DataGridViewSelectionMode.FullRowSelect };
 
-            Button btnAdd = new Button { Text = "Add Store / إضافة مخزن", Dock = DockStyle.Bottom, Height = 40, BackColor = Color.Navy, ForeColor = Color.White };
+            Panel pnlButtons = new Panel { Dock = DockStyle.Bottom, Height = 50 };
+            Button btnAdd = new Button { Text = "Add / إضافة", Width = 100, Height = 40, Location = new Point(10, 5), BackColor = Color.Navy, ForeColor = Color.White };
             btnAdd.Click += (s, e) => {
                 using (var form = new StoreEditForm())
                 {
@@ -77,14 +98,30 @@ namespace Supermarket.UI.Views
                 }
             };
 
+            Button btnEdit = new Button { Text = "Edit / تعديل", Width = 100, Height = 40, Location = new Point(120, 5), BackColor = Color.Orange, ForeColor = Color.White };
+            btnEdit.Click += (s, e) => {
+                if (dgv.SelectedRows.Count > 0)
+                {
+                    var store = dgv.SelectedRows[0].DataBoundItem as Store;
+                    using (var form = new StoreEditForm(store))
+                    {
+                        if (form.ShowDialog() == DialogResult.OK) LoadData();
+                    }
+                }
+            };
+
+            pnlButtons.Controls.Add(btnAdd);
+            pnlButtons.Controls.Add(btnEdit);
+
             this.Controls.Add(dgv);
-            this.Controls.Add(btnAdd);
+            this.Controls.Add(pnlButtons);
             LanguageHelper.ApplyLanguage(this);
         }
 
         private async void LoadData()
         {
-            dgv.DataSource = (await _repo.GetAllStoresAsync()).ToList();
+            var data = await _repo.GetAllStoresAsync();
+            dgv.DataSource = data.ToList();
         }
 
         private void InitializeComponent() { }

@@ -6,7 +6,7 @@ namespace Supermarket.UI
     public static class AppSettings
     {
         private static string _configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.txt");
-        public static string ConnectionString { get; set; } = "Server=(local);Database=SupermarketDB;Trusted_Connection=True;TrustServerCertificate=True;";
+        public static string ConnectionString { get; set; } = "Server=(localdb)\\MSSQLLocalDB;Database=SupermarketDB;Trusted_Connection=True;TrustServerCertificate=True;";
 
         static AppSettings()
         {
