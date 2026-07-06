@@ -19,12 +19,12 @@ namespace Supermarket.UI
             AppSettings.LoadSettings();
 
             // Auto-Initialize Database
+            bool dbReady = false;
             try
             {
                 string scriptPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "database_schema.sql");
                 if (!System.IO.File.Exists(scriptPath))
                 {
-                    // For development environment, check relative paths
                     scriptPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "..", "database_schema.sql");
                 }
 
@@ -32,12 +32,23 @@ namespace Supermarket.UI
                 {
                     string script = System.IO.File.ReadAllText(scriptPath);
                     Supermarket.DAL.DatabaseInitializer.InitializeDatabaseAsync(AppSettings.ConnectionString, script).GetAwaiter().GetResult();
+                    dbReady = true;
                 }
             }
             catch (Exception ex)
             {
-                // If auto-init fails, we'll let the user handle it via settings or it will fail at login
                 Console.WriteLine("Database Auto-Init Failed: " + ex.Message);
+            }
+
+            // If DB not ready and no config exists, prompt for settings
+            if (!dbReady && !System.IO.File.Exists(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.txt")))
+            {
+                using (var dbSet = new DatabaseSettingsForm())
+                {
+                    dbSet.ShowDialog();
+                    Application.Restart();
+                    return;
+                }
             }
 
             // Initialize Localization

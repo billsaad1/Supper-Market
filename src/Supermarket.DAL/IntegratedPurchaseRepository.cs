@@ -69,13 +69,27 @@ namespace Supermarket.DAL
                             new { Desc = "Purchase Invoice: " + invoice.InvoiceNumber, User = invoice.CreatedBy }, transaction);
 
                         // Get Account IDs by Codes
-                        var accounts = await db.QueryAsync<dynamic>("SELECT AccountID, AccountNumber FROM ChartOfAccounts WHERE AccountNumber IN ('1201', '1101')", null, transaction);
+                        var accounts = await db.QueryAsync<dynamic>("SELECT AccountID, AccountNumber FROM ChartOfAccounts WHERE AccountNumber IN ('1201', '1101', '1202', '2102')", null, transaction);
                         int inventoryAcc = accounts.First(a => a.AccountNumber == "1201").AccountID;
                         int cashAcc = accounts.First(a => a.AccountNumber == "1101").AccountID;
+                        int inputVatAcc = accounts.First(a => a.AccountNumber == "1202").AccountID;
+                        int supplierAcc = accounts.First(a => a.AccountNumber == "2102").AccountID;
 
-                        // Debit: Inventory, Credit: Cash
-                        await db.ExecuteAsync("INSERT INTO JournalEntryDetails (JournalID, AccountID, Debit, Credit) VALUES (@jid, @acc, @amt, 0)", new { jid = journalId, acc = inventoryAcc, amt = invoice.TotalAmount }, transaction);
-                        await db.ExecuteAsync("INSERT INTO JournalEntryDetails (JournalID, AccountID, Debit, Credit) VALUES (@jid, @acc, 0, @amt)", new { jid = journalId, acc = cashAcc, amt = invoice.NetAmount }, transaction);
+                        // Debit: Inventory (Total amount before tax)
+                        await db.ExecuteAsync("INSERT INTO JournalEntryDetails (JournalID, AccountID, Debit, Credit) VALUES (@jid, @acc, @amt, 0)",
+                            new { jid = journalId, acc = inventoryAcc, amt = invoice.TotalAmount }, transaction);
+
+                        // Debit: Input VAT (if any)
+                        if (invoice.TaxAmount > 0)
+                        {
+                            await db.ExecuteAsync("INSERT INTO JournalEntryDetails (JournalID, AccountID, Debit, Credit) VALUES (@jid, @acc, @amt, 0)",
+                                new { jid = journalId, acc = inputVatAcc, amt = invoice.TaxAmount }, transaction);
+                        }
+
+                        // Credit: Cash or Supplier (Net amount with tax)
+                        int creditAcc = invoice.PaymentType == "Credit" ? supplierAcc : cashAcc;
+                        await db.ExecuteAsync("INSERT INTO JournalEntryDetails (JournalID, AccountID, Debit, Credit) VALUES (@jid, @acc, 0, @amt)",
+                            new { jid = journalId, acc = creditAcc, amt = invoice.NetAmount }, transaction);
 
                         transaction.Commit();
                         return purchaseId;
