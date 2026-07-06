@@ -3,6 +3,7 @@ using System;
 using System.Drawing;
 using System.Windows.Forms;
 using Supermarket.BLL.Services;
+using Dapper;
 
 namespace Supermarket.UI.Views
 {
@@ -58,11 +59,31 @@ namespace Supermarket.UI.Views
 
         private async void LoadLiveStats()
         {
-            // Simulation: In real app, call _flowService methods
-            lblSalesValue.Text = "2,450.50 SR";
-            lblInvoiceCount.Text = "15";
-            lblShortages.Text = "8 Items";
-            lblCash.Text = "15,800.00 SR";
+            try
+            {
+                string conn = AppSettings.ConnectionString;
+                using (var db = new Microsoft.Data.SqlClient.SqlConnection(conn))
+                {
+                    var stats = await db.QueryFirstOrDefaultAsync<dynamic>(@"
+                        SELECT
+                            (SELECT ISNULL(SUM(NetAmount), 0) FROM SalesInvoices WHERE CAST(InvoiceDate AS DATE) = CAST(GETDATE() AS DATE)) as TodaySales,
+                            (SELECT COUNT(*) FROM SalesInvoices WHERE CAST(InvoiceDate AS DATE) = CAST(GETDATE() AS DATE)) as TodayCount,
+                            (SELECT COUNT(*) FROM (SELECT i.ItemID FROM Items i JOIN Stock s ON i.ItemID = s.ItemID GROUP BY i.ItemID, i.MinimumStockLevel HAVING SUM(s.Quantity) <= i.MinimumStockLevel) AS Short) as ShortCount,
+                            (SELECT ISNULL(SUM(Debit - Credit), 0) FROM JournalEntryDetails WHERE AccountID = 1) as CashBalance");
+
+                    if (stats != null)
+                    {
+                        lblSalesValue.Text = $"{stats.TodaySales:F2} SR";
+                        lblInvoiceCount.Text = stats.TodayCount.ToString();
+                        lblShortages.Text = $"{stats.ShortCount} Items";
+                        lblCash.Text = $"{stats.CashBalance:F2} SR";
+                    }
+
+                    var recent = await db.QueryAsync<dynamic>("SELECT TOP 10 InvoiceNumber, NetAmount, InvoiceDate FROM SalesInvoices ORDER BY InvoiceDate DESC");
+                    // Update grid if needed
+                }
+            }
+            catch { /* Database might not be ready */ }
         }
 
         private void InitializeComponent() { }

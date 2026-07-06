@@ -37,23 +37,36 @@ namespace Supermarket.UI.Views
             LanguageHelper.ApplyLanguage(this);
         }
 
-        private void LoadAccounts()
+        private async void LoadAccounts()
         {
             tvAccounts.Nodes.Clear();
+            try
+            {
+                using (var db = new Microsoft.Data.SqlClient.SqlConnection(AppSettings.ConnectionString))
+                {
+                    var accounts = await db.QueryAsync<dynamic>(@"
+                        SELECT a.*, (SELECT ISNULL(SUM(Debit - Credit), 0) FROM JournalEntryDetails WHERE AccountID = a.AccountID) as Balance
+                        FROM ChartOfAccounts a");
 
-            TreeNode assets = new TreeNode("Assets / الأصول");
-            assets.Nodes.Add("1101", "Cash / الصندوق");
-            assets.Nodes.Add("1201", "Inventory / المخزون");
-            assets.Nodes.Add("1102", "Customers / العملاء");
+                    var mainNodes = new Dictionary<string, TreeNode>();
+                    foreach (var acc in accounts.Where(a => a.ParentAccountID == null))
+                    {
+                        var node = new TreeNode($"{acc.AccountNumber} - {acc.AccountName} ({acc.Balance:F2})");
+                        mainNodes.Add(acc.AccountID.ToString(), node);
+                        tvAccounts.Nodes.Add(node);
+                    }
 
-            TreeNode revenue = new TreeNode("Revenue / الإيرادات");
-            revenue.Nodes.Add("4101", "Sales / المبيعات");
-
-            TreeNode expenses = new TreeNode("Expenses / المصروفات");
-            expenses.Nodes.Add("5101", "COGS / تكلفة المبيعات");
-
-            tvAccounts.Nodes.AddRange(new TreeNode[] { assets, revenue, expenses });
-            tvAccounts.ExpandAll();
+                    foreach (var acc in accounts.Where(a => a.ParentAccountID != null))
+                    {
+                        if (mainNodes.ContainsKey(acc.ParentAccountID.ToString()))
+                        {
+                            mainNodes[acc.ParentAccountID.ToString()].Nodes.Add($"{acc.AccountNumber} - {acc.AccountName} ({acc.Balance:F2})");
+                        }
+                    }
+                }
+                tvAccounts.ExpandAll();
+            }
+            catch { /* Handled if DB not ready */ }
         }
 
         private void InitializeComponent() { }

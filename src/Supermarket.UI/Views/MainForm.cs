@@ -57,6 +57,7 @@ namespace Supermarket.UI.Views
             if (PermissionsManager.CanAccess(_userRole, "POS")) {
                 AddSectionLabel("--- OPERATIONS ---", ref y);
                 AddMenuButton("POS / نقطة البيع", ref y, (s, e) => OpenForm(new PosForm()));
+                AddMenuButton("Returns / المرتجعات", ref y, (s, e) => OpenForm(new SalesReturnForm()));
                 AddMenuButton("Shifts / الورديات", ref y, (s, e) => OpenForm(new ShiftClosingForm()));
             }
 
@@ -69,12 +70,20 @@ namespace Supermarket.UI.Views
                 AddMenuButton("Items / الأصناف", ref y, (s, e) => OpenForm(new ItemsForm()));
                 AddMenuButton("Categories / المجموعات", ref y, (s, e) => OpenForm(new CategoriesForm()));
                 AddMenuButton("Adjustments / تسويات", ref y, (s, e) => OpenForm(new AdjustmentForm()));
+                AddMenuButton("Waste / التوالف", ref y, (s, e) => OpenForm(new WasteForm()));
+                AddMenuButton("Promotions / العروض", ref y, (s, e) => OpenForm(new PromotionsForm()));
             }
 
             if (PermissionsManager.CanAccess(_userRole, "Accounting")) {
                 AddSectionLabel("--- ACCOUNTING ---", ref y);
                 AddMenuButton("Accounts / الحسابات", ref y, (s, e) => OpenForm(new AccountsForm()));
                 AddMenuButton("Vouchers / السندات", ref y, (s, e) => OpenForm(new VouchersForm()));
+                AddMenuButton("Contacts / الجهات", ref y, (s, e) => OpenForm(new ContactsForm()));
+            }
+
+            if (PermissionsManager.CanAccess(_userRole, "HR")) {
+                AddSectionLabel("--- HUMAN RESOURCES ---", ref y);
+                AddMenuButton("HR / الموظفين", ref y, (s, e) => OpenForm(new HRForm()));
             }
 
             if (PermissionsManager.CanAccess(_userRole, "Reports")) {
@@ -84,6 +93,8 @@ namespace Supermarket.UI.Views
 
             if (PermissionsManager.CanAccess(_userRole, "Settings")) {
                 AddSectionLabel("--- SYSTEM ---", ref y);
+                AddMenuButton("Company / الشركة", ref y, (s, e) => OpenForm(new CompanySettingsForm()));
+                AddMenuButton("Users / المستخدمين", ref y, (s, e) => OpenForm(new UsersForm()));
                 AddMenuButton("Stores / المخازن", ref y, (s, e) => OpenForm(new StoresForm()));
                 AddMenuButton("Permissions / الصلاحيات", ref y, (s, e) => OpenForm(new PermissionsForm()));
                 AddMenuButton("Database / قاعدة البيانات", ref y, (s, e) => {

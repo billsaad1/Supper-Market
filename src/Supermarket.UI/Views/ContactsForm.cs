@@ -4,6 +4,8 @@ using System.Drawing;
 using System.Windows.Forms;
 using System.Collections.Generic;
 using Supermarket.DAL;
+using Dapper;
+using System.Linq;
 
 namespace Supermarket.UI.Views
 {
@@ -41,13 +43,33 @@ namespace Supermarket.UI.Views
             Button btnAdd = new Button { Text = "Add / إضافة", Location = new Point(10, 10), Width = 100, Height = 35, BackColor = Color.Teal, ForeColor = Color.White };
             controls.Controls.Add(btnAdd);
 
-            DataGridView dgv = new DataGridView { Dock = DockStyle.Fill, BackgroundColor = Color.White };
+            DataGridView dgv = new DataGridView { Dock = DockStyle.Fill, BackgroundColor = Color.White, AutoGenerateColumns = true, ReadOnly = true };
+
+            btnAdd.Click += (s, e) => {
+                MessageBox.Show($"Add {type} functionality / إضافة {type}");
+            };
+
+            LoadContacts(dgv, type);
 
             pnl.Controls.Add(dgv);
             pnl.Controls.Add(controls);
             tp.Controls.Add(pnl);
 
             return tp;
+        }
+
+        private async void LoadContacts(DataGridView dgv, string type)
+        {
+            try
+            {
+                string table = type == "Supplier" ? "Suppliers" : "Customers";
+                using (var db = new Microsoft.Data.SqlClient.SqlConnection(AppSettings.ConnectionString))
+                {
+                    var data = await db.QueryAsync<dynamic>($"SELECT * FROM {table}");
+                    dgv.DataSource = data.ToList();
+                }
+            }
+            catch { }
         }
 
         private void InitializeComponent() { }
