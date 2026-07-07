@@ -26,17 +26,38 @@ namespace Supermarket.UI.Views
         private void SetupUI()
         {
             this.Text = "Manage Items / إدارة الأصناف";
-            this.Size = new Size(800, 600);
+            this.Size = new Size(1000, 700);
+            this.BackColor = UITheme.ContentBg;
+            bool isArabic = LanguageHelper.TranslationService.CurrentLanguage == Supermarket.BLL.Services.Language.Arabic;
 
-            dgvItems = new DataGridView { Dock = DockStyle.Fill, AutoGenerateColumns = true, SelectionMode = DataGridViewSelectionMode.FullRowSelect, ReadOnly = true };
-            btnAdd = new Button { Text = "Add Item / إضافة صنف", Dock = DockStyle.Bottom, Height = 40 };
+            Panel pnlToolbar = new Panel { Dock = DockStyle.Top, Height = 60, BackColor = Color.White, Padding = new Padding(10) };
+            btnAdd = new Button {
+                Text = isArabic ? "إضافة صنف جديد" : "Add New Item",
+                Dock = isArabic ? DockStyle.Left : DockStyle.Right,
+                Width = 150,
+                BackColor = UITheme.PrimaryColor,
+                ForeColor = Color.White
+            };
+            UITheme.ApplyModernStyle(btnAdd);
             btnAdd.Click += (s, e) => {
                 var details = new AdvancedItemForm();
                 if (details.ShowDialog() == DialogResult.OK) LoadData();
             };
 
+            TextBox txtSearch = new TextBox {
+                Width = 250,
+                Font = UITheme.MainFont,
+                PlaceholderText = isArabic ? "بحث..." : "Search...",
+                Location = new Point(10, 15)
+            };
+            pnlToolbar.Controls.Add(txtSearch);
+            pnlToolbar.Controls.Add(btnAdd);
+
+            dgvItems = new DataGridView { Dock = DockStyle.Fill, AutoGenerateColumns = true };
+            UITheme.ApplyModernStyle(dgvItems);
+
             this.Controls.Add(dgvItems);
-            this.Controls.Add(btnAdd);
+            this.Controls.Add(pnlToolbar);
 
             LanguageHelper.ApplyLanguage(this);
         }

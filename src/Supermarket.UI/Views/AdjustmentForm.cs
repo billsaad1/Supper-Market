@@ -24,15 +24,19 @@ namespace Supermarket.UI.Views
         private void SetupUI()
         {
             this.Text = "Stock Adjustment / تسوية مخزون";
-            this.Size = new Size(800, 600);
+            this.Size = new Size(900, 650);
+            this.BackColor = UITheme.ContentBg;
+            bool isArabic = LanguageHelper.TranslationService.CurrentLanguage == Supermarket.BLL.Services.Language.Arabic;
 
-            dgv = new DataGridView { Dock = DockStyle.Fill, AllowUserToAddRows = false };
-            dgv.Columns.Add("ItemID", "ID");
-            dgv.Columns.Add("Name", "Item / الصنف");
-            dgv.Columns.Add("Current", "Current / الحالي");
-            dgv.Columns.Add("New", "New / الجديد");
-
-            Button btnSave = new Button { Text = "SAVE ADJUSTMENT / حفظ التسوية", Dock = DockStyle.Bottom, Height = 50, BackColor = Color.Orange, Font = new Font("Arial", 12, FontStyle.Bold) };
+            Panel pnlToolbar = new Panel { Dock = DockStyle.Top, Height = 60, BackColor = Color.White, Padding = new Padding(10) };
+            Button btnSave = new Button {
+                Text = isArabic ? "حفظ التسوية" : "SAVE ADJUSTMENT",
+                Dock = isArabic ? DockStyle.Left : DockStyle.Right,
+                Width = 200,
+                BackColor = UITheme.WarningColor,
+                ForeColor = Color.White
+            };
+            UITheme.ApplyModernStyle(btnSave);
             btnSave.Click += async (s, e) => {
                 foreach (DataGridViewRow row in dgv.Rows) {
                     if (row.Cells["New"].Value != null) {
@@ -40,11 +44,24 @@ namespace Supermarket.UI.Views
                         if (diff != 0) await _stockRepo.SaveAdjustmentAsync((int)row.Cells["ItemID"].Value, 1, diff, "Adjustment", 1);
                     }
                 }
-                MessageBox.Show("Adjustment Saved! / تم حفظ التسوية وتحديث المخزن");
+                MessageBox.Show(isArabic ? "تم حفظ التسوية وتحديث المخزن" : "Adjustment Saved!");
             };
+            pnlToolbar.Controls.Add(btnSave);
+
+            dgv = new DataGridView { Dock = DockStyle.Fill, AllowUserToAddRows = false };
+            UITheme.ApplyModernStyle(dgv);
+
+            dgv.Columns.Add("ItemID", "ID");
+            dgv.Columns.Add("Name", isArabic ? "الصنف" : "Item");
+            dgv.Columns.Add("Current", isArabic ? "الحالي" : "Current");
+            dgv.Columns.Add("New", isArabic ? "الجديد" : "New");
+
+            dgv.Columns["ItemID"].Width = 60;
+            dgv.Columns["Name"].Width = 300;
+            dgv.Columns["Current"].ReadOnly = true;
 
             this.Controls.Add(dgv);
-            this.Controls.Add(btnSave);
+            this.Controls.Add(pnlToolbar);
 
             LanguageHelper.ApplyLanguage(this);
         }

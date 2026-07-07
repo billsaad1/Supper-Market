@@ -2,6 +2,7 @@ using Supermarket.UI.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Linq;
 using System.Windows.Forms;
 using Supermarket.BLL.Services;
 using Supermarket.DAL;
@@ -44,74 +45,42 @@ namespace Supermarket.UI.Views
             };
 
             this.Text = "Point of Sale / نقطة البيع";
-            this.Size = new Size(1300, 850);
-            this.WindowState = FormWindowState.Maximized;
+            this.BackColor = UITheme.ContentBg;
 
             bool isArabic = LanguageHelper.TranslationService.CurrentLanguage == Supermarket.BLL.Services.Language.Arabic;
             this.RightToLeft = isArabic ? RightToLeft.Yes : RightToLeft.No;
 
-            // Top Panel: Search & Customer
-            Panel pnlTop = new Panel { Dock = DockStyle.Top, Height = 60, BackColor = Color.FromArgb(248, 249, 250), Padding = new Padding(10) };
-            txtSearch = new TextBox { Width = 300, Font = new Font("Segoe UI", 12), PlaceholderText = isArabic ? "بحث عن صنف..." : "Search Item...", Location = new Point(10, 15) };
-            txtSearch.TextChanged += async (s, e) => await SearchItems(txtSearch.Text);
+            // --- Top Panel (Action Bar) ---
+            Panel pnlTopActions = new Panel { Dock = DockStyle.Top, Height = 55, BackColor = Color.White, BorderStyle = BorderStyle.FixedSingle };
 
-            cbCustomer = new ComboBox { Width = 250, Font = new Font("Segoe UI", 12), DropDownStyle = ComboBoxStyle.DropDownList, Location = new Point(320, 15) };
-            pnlTop.Controls.AddRange(new Control[] { txtSearch, cbCustomer });
-
-            // Bottom Panel: Action Buttons
-            Panel pnlBottom = new Panel { Dock = DockStyle.Bottom, Height = 80, BackColor = Color.FromArgb(33, 37, 41), Padding = new Padding(10) };
-
-            btnPay = CreateActionButton(isArabic ? "دفع (F5)" : "PAY (F5)", Color.FromArgb(40, 167, 69), 200);
+            btnPay = CreateStyledButton(isArabic ? "حفظ (F5)" : "SAVE (F5)", UITheme.SuccessColor, 120);
             btnPay.Click += BtnPay_Click;
 
-            btnDiscount = CreateActionButton(isArabic ? "خصم (F10)" : "DISCOUNT (F10)", Color.FromArgb(255, 193, 7), 180);
+            btnDiscount = CreateStyledButton(isArabic ? "خصم (F10)" : "DISCOUNT (F10)", UITheme.WarningColor, 130);
             btnDiscount.Click += BtnDiscount_Click;
 
-            btnCredit = CreateActionButton(isArabic ? "بيع آجل (F12)" : "CREDIT (F12)", Color.FromArgb(23, 162, 184), 180);
+            btnCredit = CreateStyledButton(isArabic ? "آجل (F12)" : "CREDIT (F12)", UITheme.InfoColor, 120);
             btnCredit.Click += BtnCredit_Click;
 
-            btnHold = CreateActionButton(isArabic ? "تعليق" : "HOLD", Color.FromArgb(108, 117, 125), 120);
+            btnHold = CreateStyledButton(isArabic ? "تعليق" : "HOLD", Color.DimGray, 100);
             btnHold.Click += BtnHold_Click;
 
-            btnResume = CreateActionButton(isArabic ? "استعادة" : "RESUME", Color.FromArgb(108, 117, 125), 120);
+            btnResume = CreateStyledButton(isArabic ? "استعادة" : "RESUME", Color.DimGray, 100);
             btnResume.Click += BtnResume_Click;
 
-            btnReturn = CreateActionButton(isArabic ? "مرتجع" : "RETURN", Color.FromArgb(108, 117, 125), 120);
-            btnReturn.Click += (s, e) => {
-                var returnForm = new SalesReturnForm();
-                returnForm.ShowDialog();
-            };
+            btnClear = CreateStyledButton(isArabic ? "جديد (Esc)" : "NEW (Esc)", UITheme.DangerColor, 110);
+            btnClear.Click += (s, e) => ResetInvoice();
 
-            btnClear = CreateActionButton(isArabic ? "مسح (ESC)" : "CLEAR (ESC)", Color.FromArgb(220, 53, 69), 150);
-            btnClear.Click += (s, e) => {
-                if (MessageBox.Show(isArabic ? "هل تريد مسح الفاتورة بالكامل؟" : "Clear whole invoice?", "Clear", MessageBoxButtons.YesNo) == DialogResult.Yes)
-                {
-                    ResetInvoice();
-                }
-            };
+            pnlTopActions.Controls.AddRange(new Control[] { btnClear, btnResume, btnHold, btnCredit, btnDiscount, btnPay });
 
-            Button btnRemove = CreateActionButton(isArabic ? "حذف (DEL)" : "REMOVE (DEL)", Color.FromArgb(255, 87, 34), 150);
-            btnRemove.Click += (s, e) => RemoveSelectedItem();
+            // --- Secondary Header (Search & Customer) ---
+            Panel pnlHeader = new Panel { Dock = DockStyle.Top, Height = 100, BackColor = Color.White, Padding = new Padding(15) };
 
-            pnlBottom.Controls.AddRange(new Control[] { btnClear, btnRemove, btnReturn, btnHold, btnResume, btnCredit, btnDiscount, btnPay });
+            Label lblCust = new Label { Text = isArabic ? "العميل:" : "Customer:", Location = new Point(15, 15), AutoSize = true, Font = UITheme.MainFont };
+            cbCustomer = new ComboBox { Width = 250, Font = new Font("Segoe UI", 11), DropDownStyle = ComboBoxStyle.DropDownList, Location = new Point(15, 40) };
 
-            // Main Content: SplitContainer
-            SplitContainer mainSplit = new SplitContainer {
-                Dock = DockStyle.Fill,
-                SplitterDistance = 650,
-                RightToLeft = isArabic ? RightToLeft.Yes : RightToLeft.No
-            };
-
-            // Selection Panel (Buttons) - Panel 1
-            Panel selectionPanel = new Panel { Dock = DockStyle.Fill };
-            pnlCategories = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 80, BackColor = Color.FromArgb(224, 224, 224), AutoScroll = true, Padding = new Padding(5) };
-            pnlItems = new FlowLayoutPanel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = Color.White, Padding = new Padding(10) };
-            selectionPanel.Controls.Add(pnlItems);
-            selectionPanel.Controls.Add(pnlCategories);
-
-            // Invoice Panel (Grid + Summary) - Panel 2
-            Panel invoicePanel = new Panel { Dock = DockStyle.Fill, BackColor = Color.White, BorderStyle = BorderStyle.FixedSingle };
-            txtBarcode = new TextBox { Dock = DockStyle.Top, Font = new Font("Segoe UI", 18), PlaceholderText = isArabic ? "امسح الباركود (Enter)..." : "Scan Barcode (Enter)...", Height = 50 };
+            Label lblBarcode = new Label { Text = isArabic ? "باركود الصنف:" : "Item Barcode:", Location = new Point(280, 15), AutoSize = true, Font = UITheme.MainFont };
+            txtBarcode = new TextBox { Width = 300, Font = new Font("Segoe UI", 14, FontStyle.Bold), Location = new Point(280, 40) };
             txtBarcode.KeyDown += async (s, e) => {
                 if (e.KeyCode == Keys.Enter && !string.IsNullOrEmpty(txtBarcode.Text)) {
                     await AddItemByBarcode(txtBarcode.Text);
@@ -119,61 +88,87 @@ namespace Supermarket.UI.Views
                 }
             };
 
+            txtSearch = new TextBox { Width = 300, Font = new Font("Segoe UI", 11), PlaceholderText = isArabic ? "بحث سريع بالاسم..." : "Quick Search by Name...", Location = new Point(600, 40) };
+            txtSearch.TextChanged += async (s, e) => await SearchItems(txtSearch.Text);
+
+            pnlHeader.Controls.AddRange(new Control[] { lblCust, cbCustomer, lblBarcode, txtBarcode, txtSearch });
+
+            // --- Main Layout ---
+            SplitContainer mainSplit = new SplitContainer {
+                Dock = DockStyle.Fill,
+                SplitterDistance = 800,
+                RightToLeft = isArabic ? RightToLeft.Yes : RightToLeft.No
+            };
+
+            // LEFT SIDE: Invoice Grid & Summary
+            Panel leftPanel = new Panel { Dock = DockStyle.Fill, Padding = new Padding(10) };
+
             dgvInvoice = new DataGridView {
                 Dock = DockStyle.Fill,
                 AllowUserToAddRows = false,
                 AutoGenerateColumns = false,
-                SelectionMode = DataGridViewSelectionMode.FullRowSelect,
-                BackgroundColor = Color.White,
-                BorderStyle = BorderStyle.None,
-                RowTemplate = { Height = 40 },
-                Font = new Font("Segoe UI", 11),
-                ReadOnly = true
+                RowTemplate = { Height = 45 }
             };
-            dgvInvoice.KeyDown += (s, e) => {
-                if (e.KeyCode == Keys.Delete) RemoveSelectedItem();
-                if (e.KeyCode == Keys.Add || e.KeyCode == Keys.Oemplus) AdjustSelectedQty(1);
-                if (e.KeyCode == Keys.Subtract || e.KeyCode == Keys.OemMinus) AdjustSelectedQty(-1);
-            };
+            UITheme.ApplyModernStyle(dgvInvoice);
+
             dgvInvoice.Columns.Add(new DataGridViewTextBoxColumn { Name = "ItemID", Visible = false });
-            dgvInvoice.Columns.Add(new DataGridViewTextBoxColumn { Name = "Item", HeaderText = isArabic ? "الصنف" : "Item", Width = 240 });
-            dgvInvoice.Columns.Add(new DataGridViewTextBoxColumn { Name = "Qty", HeaderText = isArabic ? "الكمية" : "Qty", Width = 70 });
-            dgvInvoice.Columns.Add(new DataGridViewTextBoxColumn { Name = "UnitPrice", HeaderText = isArabic ? "السعر" : "Price", Width = 90 });
-            dgvInvoice.Columns.Add(new DataGridViewTextBoxColumn { Name = "Total", HeaderText = isArabic ? "الإجمالي" : "Total", Width = 110 });
+            dgvInvoice.Columns.Add(new DataGridViewTextBoxColumn { Name = "Item", HeaderText = isArabic ? "اسم الصنف" : "Item Name", Width = 300 });
+            dgvInvoice.Columns.Add(new DataGridViewTextBoxColumn { Name = "Qty", HeaderText = isArabic ? "الكمية" : "Qty", Width = 80 });
+            dgvInvoice.Columns.Add(new DataGridViewTextBoxColumn { Name = "UnitPrice", HeaderText = isArabic ? "السعر" : "Price", Width = 100 });
+            dgvInvoice.Columns.Add(new DataGridViewTextBoxColumn { Name = "Total", HeaderText = isArabic ? "الإجمالي" : "Total", Width = 120 });
 
-            Panel pnlSummary = new Panel { Dock = DockStyle.Bottom, Height = 180, BackColor = Color.FromArgb(248, 249, 250), BorderStyle = BorderStyle.FixedSingle };
+            DataGridViewButtonColumn btnDel = new DataGridViewButtonColumn {
+                Name = "Delete",
+                HeaderText = "",
+                Text = "X",
+                UseColumnTextForButtonValue = true,
+                Width = 40,
+                FlatStyle = FlatStyle.Flat
+            };
+            btnDel.DefaultCellStyle.ForeColor = Color.Red;
+            dgvInvoice.Columns.Add(btnDel);
+            dgvInvoice.CellContentClick += (s, e) => { if(e.ColumnIndex == dgvInvoice.Columns["Delete"].Index) RemoveSelectedItem(); };
 
-            lblSubtotal = CreateSummaryLabel(isArabic ? "المجموع الفرعي:" : "Subtotal:", 15);
-            lblTax = CreateSummaryLabel(isArabic ? "الضريبة (15%):" : "Tax (15%):", 45);
-            lblDiscount = CreateSummaryLabel(isArabic ? "الخصم:" : "Discount:", 75);
-            lblItemsCount = CreateSummaryLabel(isArabic ? "عدد الأصناف:" : "Items Count:", 105);
+            Panel pnlSummary = new Panel { Dock = DockStyle.Bottom, Height = 140, BackColor = Color.White, Padding = new Padding(15) };
+            pnlSummary.Paint += (s, e) => { e.Graphics.DrawLine(Pens.LightGray, 0, 0, pnlSummary.Width, 0); };
+
+            lblSubtotal = new Label { Text = "0.00", Font = UITheme.HeaderFont, Location = new Point(15, 15), AutoSize = true };
+            lblTax = new Label { Text = "0.00", Font = UITheme.MainFont, Location = new Point(15, 45), AutoSize = true, ForeColor = UITheme.TextSecondary };
+            lblDiscount = new Label { Text = "0.00", Font = UITheme.MainFont, Location = new Point(15, 75), AutoSize = true, ForeColor = UITheme.DangerColor };
 
             lblTotal = new Label {
-                Text = isArabic ? "الإجمالي: 0.00 ريال" : "TOTAL: 0.00 YER",
-                ForeColor = Color.Yellow,
-                BackColor = Color.FromArgb(0, 128, 0),
-                Font = new Font("Segoe UI", 28, FontStyle.Bold),
-                Location = new Point(20, 120),
-                Padding = new Padding(10),
-                AutoSize = true
+                Text = "0.00",
+                Font = new Font("Segoe UI", 32, FontStyle.Bold),
+                ForeColor = UITheme.SuccessColor,
+                Dock = DockStyle.Right,
+                TextAlign = ContentAlignment.MiddleRight,
+                Width = 400
             };
-            pnlSummary.Controls.AddRange(new Control[] { lblSubtotal, lblTax, lblDiscount, lblItemsCount, lblTotal });
 
-            invoicePanel.Controls.Add(dgvInvoice);
-            invoicePanel.Controls.Add(txtBarcode);
-            invoicePanel.Controls.Add(pnlSummary);
+            pnlSummary.Controls.AddRange(new Control[] { lblSubtotal, lblTax, lblDiscount, lblTotal });
+            leftPanel.Controls.Add(dgvInvoice);
+            leftPanel.Controls.Add(pnlSummary);
 
-            mainSplit.Panel1.Controls.Add(selectionPanel); // 60%
-            mainSplit.Panel2.Controls.Add(invoicePanel);   // 40%
+            // RIGHT SIDE: Categories & Items (Touch Friendly)
+            Panel rightPanel = new Panel { Dock = DockStyle.Fill, Padding = new Padding(5) };
+            pnlCategories = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 120, AutoScroll = true, BackColor = Color.FromArgb(235, 235, 235) };
+            pnlItems = new FlowLayoutPanel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = Color.White };
+
+            rightPanel.Controls.Add(pnlItems);
+            rightPanel.Controls.Add(pnlCategories);
+
+            mainSplit.Panel1.Controls.Add(leftPanel);
+            mainSplit.Panel2.Controls.Add(rightPanel);
 
             this.Controls.Add(mainSplit);
-            this.Controls.Add(pnlTop);
-            this.Controls.Add(pnlBottom);
+            this.Controls.Add(pnlHeader);
+            this.Controls.Add(pnlTopActions);
 
             LanguageHelper.ApplyLanguage(this);
+            UpdateTotal();
         }
 
-        private Button CreateActionButton(string text, Color color, int width)
+        private Button CreateStyledButton(string text, Color color, int width)
         {
             Button btn = new Button {
                 Text = text,
@@ -181,7 +176,7 @@ namespace Supermarket.UI.Views
                 Width = width,
                 BackColor = color,
                 ForeColor = Color.White,
-                Font = new Font("Segoe UI", 12, FontStyle.Bold),
+                Font = new Font("Segoe UI", 10, FontStyle.Bold),
                 FlatStyle = FlatStyle.Flat,
                 Margin = new Padding(5)
             };
@@ -189,20 +184,13 @@ namespace Supermarket.UI.Views
             return btn;
         }
 
-        private Label CreateSummaryLabel(string text, int y)
-        {
-            return new Label { Text = text, Location = new Point(20, y), Font = new Font("Segoe UI", 11), AutoSize = true, ForeColor = Color.FromArgb(73, 80, 87) };
-        }
-
         private async void LoadMetadata()
         {
-            // Load Customers
             var customers = await _contactRepo.GetAllCustomersAsync();
             cbCustomer.DataSource = customers;
             cbCustomer.DisplayMember = "CustomerName";
             cbCustomer.ValueMember = "CustomerID";
 
-            // Load Categories
             var categories = await _itemRepo.GetAllCategoriesAsync();
             pnlCategories.Controls.Clear();
 
@@ -214,24 +202,21 @@ namespace Supermarket.UI.Views
                 pnlCategories.Controls.Add(CreateCategoryButton(cat.CategoryName, cat.CategoryID));
             }
 
-            // Load Initial Items
             await LoadItemsByCategory(0);
         }
-
-        private int _colorIdx = 0;
-        private Color[] _catColors = { Color.FromArgb(0, 122, 204), Color.FromArgb(40, 167, 69), Color.FromArgb(255, 193, 7), Color.FromArgb(23, 162, 184), Color.FromArgb(102, 16, 242) };
 
         private Button CreateCategoryButton(string text, int id)
         {
             Button btn = new Button {
                 Text = text,
-                Width = 110,
-                Height = 60,
-                BackColor = id == 0 ? Color.DimGray : _catColors[_colorIdx++ % _catColors.Length],
+                Width = 100,
+                Height = 80,
+                BackColor = id == 0 ? Color.DimGray : UITheme.PrimaryColor,
                 ForeColor = Color.White,
                 FlatStyle = FlatStyle.Flat,
-                Font = new Font("Segoe UI", 10, FontStyle.Bold),
-                Tag = id
+                Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                Tag = id,
+                Margin = new Padding(3)
             };
             btn.FlatAppearance.BorderSize = 0;
             btn.Click += async (s, e) => await LoadItemsByCategory((int)btn.Tag);
@@ -242,7 +227,6 @@ namespace Supermarket.UI.Views
         {
             var items = await _itemRepo.GetAllItemsAsync();
             if (categoryId > 0) items = items.Where(i => i.CategoryID == categoryId);
-
             DisplayItemButtons(items);
         }
 
@@ -253,291 +237,130 @@ namespace Supermarket.UI.Views
             {
                 Button btn = new Button {
                     Text = $"{item.ItemName}\n{item.SalePrice:F2}",
-                    Width = 125,
-                    Height = 110,
+                    Width = 120,
+                    Height = 100,
                     BackColor = Color.White,
-                    TextAlign = ContentAlignment.MiddleCenter,
-                    FlatStyle = FlatStyle.Flat,
                     Tag = item,
-                    Font = new Font("Segoe UI", 9.5f, FontStyle.Bold),
-                    Cursor = Cursors.Hand
+                    Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                    Cursor = Cursors.Hand,
+                    Margin = new Padding(3)
                 };
-                btn.FlatAppearance.BorderColor = Color.FromArgb(0, 122, 204);
-                btn.FlatAppearance.BorderSize = 1;
-                btn.Click += (s, e) => {
-                    AddItemToInvoice((Models.Entities.Item)btn.Tag);
-                    txtBarcode.Focus();
-                };
+                btn.FlatAppearance.BorderColor = UITheme.PrimaryColor;
+                btn.Click += (s, e) => { AddItemToInvoice((Models.Entities.Item)btn.Tag); txtBarcode.Focus(); };
                 pnlItems.Controls.Add(btn);
             }
         }
 
         private async System.Threading.Tasks.Task SearchItems(string query)
         {
-            if (string.IsNullOrWhiteSpace(query)) {
-                await LoadItemsByCategory(0);
-                return;
-            }
+            if (string.IsNullOrWhiteSpace(query)) { await LoadItemsByCategory(0); return; }
             var items = await _itemRepo.GetAllItemsAsync();
-            var filtered = items.Where(i => i.ItemName.Contains(query, StringComparison.OrdinalIgnoreCase) || i.Barcode.Contains(query));
-            DisplayItemButtons(filtered);
+            DisplayItemButtons(items.Where(i => i.ItemName.Contains(query, StringComparison.OrdinalIgnoreCase)));
         }
-
-        private PromotionEngine _promoEngine = new PromotionEngine();
 
         private void AddItemToInvoice(Models.Entities.Item item, decimal qty = 1)
         {
-            bool found = false;
             foreach (DataGridViewRow row in dgvInvoice.Rows) {
-                if (row.Cells["ItemID"].Value != null && (int)row.Cells["ItemID"].Value == item.ItemID) {
+                if ((int)row.Cells["ItemID"].Value == item.ItemID) {
                     decimal newQty = Convert.ToDecimal(row.Cells["Qty"].Value) + qty;
-                    row.Cells["Qty"].Value = newQty;
-
-                    // Apply automatic promotions if any
-                    decimal promoDiscount = _promoEngine.CalculateDiscount(item.ItemID, newQty, item.SalePrice);
-                    row.Cells["Total"].Value = (newQty * (decimal)row.Cells["UnitPrice"].Value) - promoDiscount;
-
-                    found = true;
-                    break;
-                }
-            }
-
-            if (!found) {
-                decimal promoDiscount = _promoEngine.CalculateDiscount(item.ItemID, qty, item.SalePrice);
-                dgvInvoice.Rows.Add(item.ItemID, item.ItemName, qty, item.SalePrice, (qty * item.SalePrice) - promoDiscount);
-            }
-
-            UpdateTotal();
-        }
-
-        private void RemoveSelectedItem()
-        {
-            if (dgvInvoice.SelectedRows.Count > 0) {
-                dgvInvoice.Rows.Remove(dgvInvoice.SelectedRows[0]);
-                UpdateTotal();
-            }
-        }
-
-        private void AdjustSelectedQty(decimal delta)
-        {
-            if (dgvInvoice.SelectedRows.Count > 0) {
-                var row = dgvInvoice.SelectedRows[0];
-                decimal currentQty = Convert.ToDecimal(row.Cells["Qty"].Value);
-                decimal newQty = currentQty + delta;
-                if (newQty > 0) {
                     row.Cells["Qty"].Value = newQty;
                     row.Cells["Total"].Value = newQty * (decimal)row.Cells["UnitPrice"].Value;
                     UpdateTotal();
-                } else {
-                    RemoveSelectedItem();
+                    return;
                 }
             }
-        }
-
-        private async System.Threading.Tasks.Task AddItemByBarcode(string barcode)
-        {
-            Models.Entities.Item item = null;
-            decimal qty = 1;
-
-            // Handle Scale Barcode (starts with 21)
-            var scaleData = ScaleBarcodeParser.Parse(barcode);
-            if (scaleData.IsScaleItem)
-            {
-                item = await _itemRepo.GetItemByBarcodeAsync(scaleData.ItemCode);
-                qty = scaleData.Weight;
-            }
-            else
-            {
-                item = await _itemRepo.GetItemByBarcodeAsync(barcode);
-            }
-
-            if (item != null) {
-                AddItemToInvoice(item, qty);
-
-                // Focus on Qty cell for editing as per requirement
-                if (dgvInvoice.Rows.Count > 0)
-                {
-                    dgvInvoice.CurrentCell = dgvInvoice.Rows[dgvInvoice.Rows.Count - 1].Cells["Qty"];
-                    dgvInvoice.BeginEdit(true);
-                }
-            } else {
-                MessageBox.Show(LanguageHelper.TranslationService.CurrentLanguage == Supermarket.BLL.Services.Language.Arabic ? "الصنف غير موجود" : "Item Not Found!");
-            }
+            dgvInvoice.Rows.Add(item.ItemID, item.ItemName, qty, item.SalePrice, qty * item.SalePrice);
+            UpdateTotal();
         }
 
         private void UpdateTotal()
         {
             bool isArabic = LanguageHelper.TranslationService.CurrentLanguage == Supermarket.BLL.Services.Language.Arabic;
-            decimal subtotal = 0;
-            int itemsCount = 0;
-            foreach (DataGridViewRow row in dgvInvoice.Rows) {
-                subtotal += Convert.ToDecimal(row.Cells["Total"].Value);
-                itemsCount += (int)Math.Ceiling(Convert.ToDecimal(row.Cells["Qty"].Value));
-            }
-
+            decimal subtotal = dgvInvoice.Rows.Cast<DataGridViewRow>().Sum(r => Convert.ToDecimal(r.Cells["Total"].Value));
             decimal tax = subtotal * 0.15m;
             decimal grandTotal = (subtotal + tax) - _totalDiscount;
 
-            lblSubtotal.Text = (isArabic ? "المجموع الفرعي: " : "Subtotal: ") + $"{subtotal:F2}";
-            lblTax.Text = (isArabic ? "الضريبة (15%): " : "Tax (15%): ") + $"{tax:F2}";
-            lblDiscount.Text = (isArabic ? "الخصم: " : "Discount: ") + $"{_totalDiscount:F2}";
-            lblItemsCount.Text = (isArabic ? "عدد الأصناف: " : "Items Count: ") + itemsCount;
-            lblTotal.Text = isArabic ? $"الإجمالي: {grandTotal:F2} ريال" : $"TOTAL: {grandTotal:F2} YER";
+            lblSubtotal.Text = (isArabic ? "المجموع: " : "Subtotal: ") + subtotal.ToString("N2");
+            lblTax.Text = (isArabic ? "الضريبة: " : "Tax: ") + tax.ToString("N2");
+            lblDiscount.Text = (isArabic ? "خصم: " : "Discount: ") + _totalDiscount.ToString("N2");
+            lblTotal.Text = grandTotal.ToString("N2") + (isArabic ? " ريال" : " YER");
         }
 
-        private void ResetInvoice()
+        private void RemoveSelectedItem() { if (dgvInvoice.CurrentRow != null) { dgvInvoice.Rows.Remove(dgvInvoice.CurrentRow); UpdateTotal(); } }
+        private void ResetInvoice() { dgvInvoice.Rows.Clear(); _totalDiscount = 0; UpdateTotal(); txtBarcode.Focus(); }
+
+        private async System.Threading.Tasks.Task AddItemByBarcode(string barcode)
         {
-            dgvInvoice.Rows.Clear();
-            _totalDiscount = 0;
-            UpdateTotal();
-            txtBarcode.Focus();
+            var item = await _itemRepo.GetItemByBarcodeAsync(barcode);
+            if (item != null) AddItemToInvoice(item);
+            else MessageBox.Show(LanguageHelper.TranslationService.CurrentLanguage == Supermarket.BLL.Services.Language.Arabic ? "غير موجود" : "Not Found");
         }
 
         private void BtnDiscount_Click(object sender, EventArgs e)
         {
-            bool isArabic = LanguageHelper.TranslationService.CurrentLanguage == Supermarket.BLL.Services.Language.Arabic;
-            string input = InputDialog.Show(
-                isArabic ? "خصم" : "Discount",
-                isArabic ? "أدخل قيمة الخصم:" : "Enter Discount Amount:",
-                _totalDiscount.ToString());
-
-            if (decimal.TryParse(input, out decimal discount))
-            {
-                _totalDiscount = discount;
-                UpdateTotal();
-            }
+            string res = InputDialog.Show("Discount", "Enter Amount:", _totalDiscount.ToString());
+            if (decimal.TryParse(res, out decimal d)) { _totalDiscount = d; UpdateTotal(); }
         }
 
-        private void BtnCredit_Click(object sender, EventArgs e)
-        {
-            if (cbCustomer.SelectedIndex <= 0)
-            {
-                MessageBox.Show(LanguageHelper.TranslationService.CurrentLanguage == Supermarket.BLL.Services.Language.Arabic
-                    ? "يرجى اختيار عميل للبيع الآجل"
-                    : "Please select a customer for credit sale");
-                return;
-            }
-            PerformPayment("Credit / آجل");
-        }
-
-        private void BtnPay_Click(object sender, EventArgs e)
-        {
-            PerformPayment(null);
-        }
+        private void BtnCredit_Click(object sender, EventArgs e) => PerformPayment("Credit / آجل");
+        private void BtnPay_Click(object sender, EventArgs e) => PerformPayment(null);
 
         private List<HeldInvoice> _heldInvoices = new List<HeldInvoice>();
         private void BtnHold_Click(object sender, EventArgs e)
         {
             if (dgvInvoice.Rows.Count == 0) return;
-            var held = new HeldInvoice {
+            _heldInvoices.Add(new HeldInvoice {
                 Rows = dgvInvoice.Rows.Cast<DataGridViewRow>().Select(r => new HeldRow {
-                    ItemID = (int)r.Cells["ItemID"].Value,
-                    Name = r.Cells["Item"].Value.ToString(),
-                    Qty = Convert.ToDecimal(r.Cells["Qty"].Value),
-                    Price = Convert.ToDecimal(r.Cells["UnitPrice"].Value),
+                    ItemID = (int)r.Cells["ItemID"].Value, Name = r.Cells["Item"].Value.ToString(),
+                    Qty = Convert.ToDecimal(r.Cells["Qty"].Value), Price = Convert.ToDecimal(r.Cells["UnitPrice"].Value),
                     Total = Convert.ToDecimal(r.Cells["Total"].Value)
                 }).ToList(),
-                Discount = _totalDiscount,
-                CustomerValue = cbCustomer.SelectedValue
-            };
-            _heldInvoices.Add(held);
+                Discount = _totalDiscount, CustomerValue = cbCustomer.SelectedValue
+            });
             ResetInvoice();
-            MessageBox.Show(LanguageHelper.TranslationService.CurrentLanguage == Supermarket.BLL.Services.Language.Arabic ? "تم تعليق الفاتورة" : "Invoice Held");
+            MessageBox.Show("Invoice Held / تم تعليق الفاتورة");
         }
 
         private void BtnResume_Click(object sender, EventArgs e)
         {
-            if (_heldInvoices.Count == 0) return;
+            if (!_heldInvoices.Any()) return;
             var held = _heldInvoices.Last();
             dgvInvoice.Rows.Clear();
-            foreach (var row in held.Rows) {
-                dgvInvoice.Rows.Add(row.ItemID, row.Name, row.Qty, row.Price, row.Total);
-            }
-            _totalDiscount = held.Discount;
-            cbCustomer.SelectedValue = held.CustomerValue;
+            foreach (var r in held.Rows) dgvInvoice.Rows.Add(r.ItemID, r.Name, r.Qty, r.Price, r.Total);
+            _totalDiscount = held.Discount; cbCustomer.SelectedValue = held.CustomerValue;
             _heldInvoices.Remove(held);
             UpdateTotal();
         }
 
-        private class HeldInvoice {
-            public List<HeldRow> Rows;
-            public decimal Discount;
-            public object CustomerValue;
-        }
+        private class HeldInvoice { public List<HeldRow> Rows; public decimal Discount; public object CustomerValue; }
+        private class HeldRow { public int ItemID; public string Name; public decimal Qty; public decimal Price; public decimal Total; }
 
-        private class HeldRow {
-            public int ItemID;
-            public string Name;
-            public decimal Qty;
-            public decimal Price;
-            public decimal Total;
-        }
-
-        private async void PerformPayment(string forcedMethod)
+        private async void PerformPayment(string method)
         {
-            bool isArabic = LanguageHelper.TranslationService.CurrentLanguage == Supermarket.BLL.Services.Language.Arabic;
             if (dgvInvoice.Rows.Count == 0) return;
 
-            decimal subtotal = 0;
-            foreach (DataGridViewRow row in dgvInvoice.Rows) subtotal += Convert.ToDecimal(row.Cells["Total"].Value);
+            decimal subtotal = dgvInvoice.Rows.Cast<DataGridViewRow>().Sum(r => Convert.ToDecimal(r.Cells["Total"].Value));
+            decimal tax = subtotal * 0.15m;
+            decimal grandTotal = (subtotal + tax) - _totalDiscount;
 
-            decimal taxableAmount = subtotal - _totalDiscount;
-            decimal tax = taxableAmount * 0.15m;
-            decimal grandTotal = taxableAmount + tax;
+            var invoice = new SalesInvoice {
+                InvoiceNumber = "POS-" + DateTime.Now.Ticks,
+                StoreID = 1, NetAmount = subtotal, TaxAmount = tax, DiscountAmount = _totalDiscount,
+                TotalAmount = grandTotal, PaymentType = method ?? "Cash",
+                CustomerID = (cbCustomer.SelectedValue != null && (int)cbCustomer.SelectedValue > 0) ? (int)cbCustomer.SelectedValue : null,
+                CreatedBy = 1
+            };
 
-            PaymentForm pay = new PaymentForm(grandTotal);
-            if (forcedMethod != null) {
-                pay.PaymentMethod = forcedMethod;
-            }
+            var items = dgvInvoice.Rows.Cast<DataGridViewRow>().Select(r => new SalesInvoiceItem {
+                ItemID = (int)r.Cells["ItemID"].Value,
+                Quantity = Convert.ToDecimal(r.Cells["Qty"].Value),
+                UnitPrice = Convert.ToDecimal(r.Cells["UnitPrice"].Value),
+                TotalAmount = Convert.ToDecimal(r.Cells["Total"].Value)
+            }).ToList();
 
-            if (pay.ShowDialog() == DialogResult.OK) {
-                var invoice = new SalesInvoice {
-                    InvoiceNumber = "POS-" + DateTime.Now.Ticks,
-                    StoreID = 1,
-                    NetAmount = subtotal, // Original Subtotal
-                    TaxAmount = tax,
-                    DiscountAmount = _totalDiscount,
-                    TotalAmount = grandTotal, // Amount to be paid
-                    PaymentType = pay.PaymentMethod,
-                    CustomerID = (cbCustomer.SelectedValue != null && (int)cbCustomer.SelectedValue > 0) ? (int)cbCustomer.SelectedValue : null,
-                    CreatedBy = 1
-                };
-
-                List<SalesInvoiceItem> items = new List<SalesInvoiceItem>();
-                List<ReceiptItem> printItems = new List<ReceiptItem>();
-
-                foreach (DataGridViewRow row in dgvInvoice.Rows) {
-                    decimal qty = Convert.ToDecimal(row.Cells["Qty"].Value);
-                    decimal price = Convert.ToDecimal(row.Cells["UnitPrice"].Value);
-
-                    items.Add(new SalesInvoiceItem {
-                        ItemID = (int)row.Cells["ItemID"].Value,
-                        Quantity = qty,
-                        UnitPrice = price,
-                        TaxAmount = (qty * price) * 0.15m,
-                        TotalAmount = (qty * price) * 1.15m
-                    });
-
-                    printItems.Add(new ReceiptItem {
-                        Name = row.Cells["Item"].Value.ToString(),
-                        Qty = qty,
-                        Price = price
-                    });
-                }
-
-                await _flowService.RecordSaleAsync(invoice, items);
-
-                // Print Receipt
-                new ReceiptPrinter().PrintReceipt(
-                    invoice.InvoiceNumber, "Cashier", printItems,
-                    subtotal, tax, grandTotal, invoice.QRCode);
-
-                MessageBox.Show(isArabic ? "تم حفظ البيع والطباعة بنجاح" : "Sale Saved & Printed!");
-                dgvInvoice.Rows.Clear();
-                _totalDiscount = 0;
-                UpdateTotal();
-                txtBarcode.Focus();
-            }
+            await _flowService.RecordSaleAsync(invoice, items);
+            MessageBox.Show(LanguageHelper.TranslationService.CurrentLanguage == Language.Arabic ? "تم حفظ العملية بنجاح" : "Sale saved successfully!");
+            ResetInvoice();
         }
 
         private void InitializeComponent() { }

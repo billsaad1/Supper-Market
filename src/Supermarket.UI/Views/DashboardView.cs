@@ -22,8 +22,9 @@ namespace Supermarket.UI.Views
 
         private void SetupUI()
         {
-            this.Text = "Live Dashboard / لوحة المعلومات الحية";
-            this.BackColor = Color.White;
+            this.Text = "Dashboard";
+            this.BackColor = UITheme.ContentBg;
+            bool isArabic = LanguageHelper.TranslationService.CurrentLanguage == Supermarket.BLL.Services.Language.Arabic;
 
             TableLayoutPanel layout = new TableLayoutPanel { Dock = DockStyle.Top, Height = 160, ColumnCount = 4, RowCount = 1, Padding = new Padding(10) };
             layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25f));
@@ -31,29 +32,37 @@ namespace Supermarket.UI.Views
             layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25f));
             layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25f));
 
-            layout.Controls.Add(CreateStatCard("Today Sales / مبيعات اليوم", out lblSalesValue, Color.FromArgb(0, 122, 204)), 0, 0);
-            layout.Controls.Add(CreateStatCard("Invoices / الفواتير", out lblInvoiceCount, Color.FromArgb(30, 150, 70)), 1, 0);
-            layout.Controls.Add(CreateStatCard("Shortages / النواقص", out lblShortages, Color.FromArgb(204, 0, 0)), 2, 0);
-            layout.Controls.Add(CreateStatCard("Cash Balance / رصيد الصندوق", out lblCash, Color.FromArgb(200, 150, 0)), 3, 0);
+            layout.Controls.Add(CreateStatCard(isArabic ? "مبيعات اليوم" : "Today Sales", out lblSalesValue, UITheme.PrimaryColor), 0, 0);
+            layout.Controls.Add(CreateStatCard(isArabic ? "الفواتير" : "Invoices", out lblInvoiceCount, UITheme.SuccessColor), 1, 0);
+            layout.Controls.Add(CreateStatCard(isArabic ? "النواقص" : "Shortages", out lblShortages, UITheme.DangerColor), 2, 0);
+            layout.Controls.Add(CreateStatCard(isArabic ? "رصيد الصندوق" : "Cash Balance", out lblCash, UITheme.WarningColor), 3, 0);
 
             this.Controls.Add(layout);
 
-            DataGridView dgvRecent = new DataGridView { Dock = DockStyle.Fill, AutoGenerateColumns = true, BackgroundColor = Color.White, BorderStyle = BorderStyle.None, ReadOnly = true };
-            Label lblRecent = new Label { Text = "Recent Sales / آخر المبيعات", Dock = DockStyle.Top, Height = 40, Font = new Font("Arial", 12, FontStyle.Bold), TextAlign = ContentAlignment.BottomLeft, Padding = new Padding(10, 0, 0, 5) };
+            Panel pnlRecent = new Panel { Dock = DockStyle.Fill, Padding = new Padding(20) };
+            Label lblRecent = new Label { Text = isArabic ? "آخر المبيعات" : "Recent Sales", Dock = DockStyle.Top, Height = 40, Font = UITheme.HeaderFont };
+            DataGridView dgvRecent = new DataGridView { Dock = DockStyle.Fill };
+            UITheme.ApplyModernStyle(dgvRecent);
 
-            this.Controls.Add(dgvRecent);
-            this.Controls.Add(lblRecent);
+            pnlRecent.Controls.Add(dgvRecent);
+            pnlRecent.Controls.Add(lblRecent);
+            this.Controls.Add(pnlRecent);
 
             LanguageHelper.ApplyLanguage(this);
         }
 
         private Panel CreateStatCard(string title, out Label valueLabel, Color color)
         {
-            Panel p = new Panel { Margin = new Padding(10), BackColor = color, Height = 120 };
-            valueLabel = new Label { Text = "0.00", ForeColor = Color.White, Font = new Font("Segoe UI", 20, FontStyle.Bold), Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleCenter };
-            Label lblTitle = new Label { Text = title, ForeColor = Color.White, Font = new Font("Segoe UI", 10), Dock = DockStyle.Top, Height = 35, TextAlign = ContentAlignment.MiddleCenter };
+            Panel p = new Panel { Margin = new Padding(10), BackColor = Color.White, Height = 120 };
+            p.Tag = "Card";
+
+            Panel topBar = new Panel { Dock = DockStyle.Top, Height = 4, BackColor = color };
+            valueLabel = new Label { Text = "0.00", ForeColor = UITheme.TextPrimary, Font = new Font("Segoe UI", 18, FontStyle.Bold), Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleCenter };
+            Label lblTitle = new Label { Text = title, ForeColor = UITheme.TextSecondary, Font = UITheme.MainFont, Dock = DockStyle.Top, Height = 35, TextAlign = ContentAlignment.MiddleCenter };
+
             p.Controls.Add(valueLabel);
             p.Controls.Add(lblTitle);
+            p.Controls.Add(topBar);
             return p;
         }
 

@@ -20,33 +20,46 @@ namespace Supermarket.UI.Views
         private void SetupUI()
         {
             this.Text = "Waste Management / إدارة التوالف";
-            this.Size = new Size(600, 500);
+            this.Size = new Size(800, 600);
+            this.BackColor = UITheme.ContentBg;
+            bool isArabic = LanguageHelper.TranslationService.CurrentLanguage == Supermarket.BLL.Services.Language.Arabic;
 
-            Panel pnl = new Panel { Dock = DockStyle.Top, Height = 160, Padding = new Padding(10) };
-            pnl.Controls.Add(new Label { Text = "Item Barcode / باركود الصنف", Location = new Point(20, 20), AutoSize = true });
-            TextBox txtBarcode = new TextBox { Location = new Point(180, 18), Width = 200 };
+            Panel pnlEntry = new Panel { Dock = DockStyle.Top, Height = 180, BackColor = Color.White, Padding = new Padding(20) };
 
-            pnl.Controls.Add(new Label { Text = "Waste Qty / كمية التالف", Location = new Point(20, 60), AutoSize = true });
-            TextBox txtQty = new TextBox { Location = new Point(180, 58), Width = 100 };
+            Label lblBarcode = new Label { Text = isArabic ? "باركود الصنف:" : "Item Barcode:", Location = new Point(20, 20), AutoSize = true, Font = UITheme.MainFont };
+            TextBox txtBarcode = new TextBox { Location = new Point(20, 45), Width = 250, Font = new Font("Segoe UI", 12) };
 
-            pnl.Controls.Add(new Label { Text = "Reason / السبب", Location = new Point(20, 100), AutoSize = true });
-            ComboBox cbReason = new ComboBox { Location = new Point(180, 98), Width = 200 };
-            cbReason.Items.AddRange(new string[] { "Expired / منتهي الصلاحية", "Damaged / تالف", "Lost / مفقود" });
+            Label lblQty = new Label { Text = isArabic ? "كمية التالف:" : "Waste Qty:", Location = new Point(300, 20), AutoSize = true, Font = UITheme.MainFont };
+            TextBox txtQty = new TextBox { Location = new Point(300, 45), Width = 100, Font = new Font("Segoe UI", 12) };
+
+            Label lblReason = new Label { Text = isArabic ? "السبب:" : "Reason:", Location = new Point(430, 20), AutoSize = true, Font = UITheme.MainFont };
+            ComboBox cbReason = new ComboBox { Location = new Point(430, 45), Width = 200, Font = new Font("Segoe UI", 12), DropDownStyle = ComboBoxStyle.DropDownList };
+            cbReason.Items.AddRange(isArabic ? new string[] { "منتهي الصلاحية", "تالف", "مفقود" } : new string[] { "Expired", "Damaged", "Lost" });
             cbReason.SelectedIndex = 0;
-            pnl.Controls.Add(cbReason);
 
-            Button btnSave = new Button { Text = "RECORD WASTE / تسجيل تالف", Location = new Point(400, 95), Width = 180, Height = 40, BackColor = Color.Red, ForeColor = Color.White };
+            Button btnSave = new Button {
+                Text = isArabic ? "تسجيل تالف" : "RECORD WASTE",
+                Location = new Point(20, 100),
+                Width = 200,
+                Height = 45,
+                BackColor = UITheme.DangerColor,
+                ForeColor = Color.White
+            };
+            UITheme.ApplyModernStyle(btnSave);
             btnSave.Click += async (s, e) => {
-                await _stockRepo.SaveAdjustmentAsync(1, 1, -decimal.Parse(txtQty.Text), "Waste: " + cbReason.Text, 1);
-                MessageBox.Show("Waste Recorded & Stock Updated / تم تسجيل التالف وتحديث المخزن والقيود");
+                if (decimal.TryParse(txtQty.Text, out decimal q)) {
+                    await _stockRepo.SaveAdjustmentAsync(1, 1, -q, "Waste: " + cbReason.Text, 1);
+                    MessageBox.Show(isArabic ? "تم تسجيل التالف وتحديث المخزن" : "Waste Recorded!");
+                }
             };
 
-            pnl.Controls.Add(txtBarcode);
-            pnl.Controls.Add(txtQty);
-            pnl.Controls.Add(btnSave);
+            pnlEntry.Controls.AddRange(new Control[] { lblBarcode, txtBarcode, lblQty, txtQty, lblReason, cbReason, btnSave });
 
-            this.Controls.Add(pnl);
-            this.Controls.Add(new DataGridView { Dock = DockStyle.Fill });
+            DataGridView dgv = new DataGridView { Dock = DockStyle.Fill };
+            UITheme.ApplyModernStyle(dgv);
+
+            this.Controls.Add(dgv);
+            this.Controls.Add(pnlEntry);
 
             LanguageHelper.ApplyLanguage(this);
         }

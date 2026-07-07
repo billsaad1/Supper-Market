@@ -27,33 +27,34 @@ namespace Supermarket.UI.Views
         private void SetupUI()
         {
             this.Text = "Categories / المجموعات";
-            this.Size = new Size(600, 500);
+            this.Size = new Size(700, 500);
+            this.BackColor = UITheme.ContentBg;
 
-            dgv = new DataGridView { Dock = DockStyle.Fill, AutoGenerateColumns = true, ReadOnly = true, SelectionMode = DataGridViewSelectionMode.FullRowSelect };
+            dgv = new DataGridView { Dock = DockStyle.Fill };
+            UITheme.ApplyModernStyle(dgv);
 
-            Panel pnlButtons = new Panel { Dock = DockStyle.Bottom, Height = 50 };
-            Button btnAdd = new Button { Text = "Add / إضافة", Width = 100, Height = 40, Location = new Point(10, 5), BackColor = Color.Teal, ForeColor = Color.White };
+            Panel pnlButtons = new Panel { Dock = DockStyle.Top, Height = 60, BackColor = Color.White, Padding = new Padding(10) };
+            Button btnAdd = new Button { Text = "Add / إضافة", Width = 120, Dock = DockStyle.Left, BackColor = UITheme.SuccessColor, ForeColor = Color.White };
             btnAdd.Click += (s, e) => {
-                using (var form = new CategoryEditForm())
-                {
+                using (var form = new CategoryEditForm()) {
                     if (form.ShowDialog() == DialogResult.OK) LoadData();
                 }
             };
 
-            Button btnEdit = new Button { Text = "Edit / تعديل", Width = 100, Height = 40, Location = new Point(120, 5), BackColor = Color.Orange, ForeColor = Color.White };
+            Button btnEdit = new Button { Text = "Edit / تعديل", Width = 120, Dock = DockStyle.Left, Margin = new Padding(10, 0, 0, 0), BackColor = UITheme.WarningColor, ForeColor = Color.White };
             btnEdit.Click += (s, e) => {
-                if (dgv.SelectedRows.Count > 0)
-                {
+                if (dgv.SelectedRows.Count > 0) {
                     var cat = dgv.SelectedRows[0].DataBoundItem as Category;
-                    using (var form = new CategoryEditForm(cat))
-                    {
+                    using (var form = new CategoryEditForm(cat)) {
                         if (form.ShowDialog() == DialogResult.OK) LoadData();
                     }
                 }
             };
 
-            pnlButtons.Controls.Add(btnAdd);
+            UITheme.ApplyModernStyle(btnAdd);
+            UITheme.ApplyModernStyle(btnEdit);
             pnlButtons.Controls.Add(btnEdit);
+            pnlButtons.Controls.Add(btnAdd);
 
             this.Controls.Add(dgv);
             this.Controls.Add(pnlButtons);
@@ -85,33 +86,34 @@ namespace Supermarket.UI.Views
         private void SetupUI()
         {
             this.Text = "Stores / المخازن";
-            this.Size = new Size(600, 500);
+            this.Size = new Size(700, 500);
+            this.BackColor = UITheme.ContentBg;
 
-            dgv = new DataGridView { Dock = DockStyle.Fill, AutoGenerateColumns = true, ReadOnly = true, SelectionMode = DataGridViewSelectionMode.FullRowSelect };
+            dgv = new DataGridView { Dock = DockStyle.Fill };
+            UITheme.ApplyModernStyle(dgv);
 
-            Panel pnlButtons = new Panel { Dock = DockStyle.Bottom, Height = 50 };
-            Button btnAdd = new Button { Text = "Add / إضافة", Width = 100, Height = 40, Location = new Point(10, 5), BackColor = Color.Navy, ForeColor = Color.White };
+            Panel pnlButtons = new Panel { Dock = DockStyle.Top, Height = 60, BackColor = Color.White, Padding = new Padding(10) };
+            Button btnAdd = new Button { Text = "Add / إضافة", Width = 120, Dock = DockStyle.Left, BackColor = UITheme.PrimaryColor, ForeColor = Color.White };
             btnAdd.Click += (s, e) => {
-                using (var form = new StoreEditForm())
-                {
+                using (var form = new StoreEditForm()) {
                     if (form.ShowDialog() == DialogResult.OK) LoadData();
                 }
             };
 
-            Button btnEdit = new Button { Text = "Edit / تعديل", Width = 100, Height = 40, Location = new Point(120, 5), BackColor = Color.Orange, ForeColor = Color.White };
+            Button btnEdit = new Button { Text = "Edit / تعديل", Width = 120, Dock = DockStyle.Left, BackColor = UITheme.WarningColor, ForeColor = Color.White };
             btnEdit.Click += (s, e) => {
-                if (dgv.SelectedRows.Count > 0)
-                {
+                if (dgv.SelectedRows.Count > 0) {
                     var store = dgv.SelectedRows[0].DataBoundItem as Store;
-                    using (var form = new StoreEditForm(store))
-                    {
+                    using (var form = new StoreEditForm(store)) {
                         if (form.ShowDialog() == DialogResult.OK) LoadData();
                     }
                 }
             };
 
-            pnlButtons.Controls.Add(btnAdd);
+            UITheme.ApplyModernStyle(btnAdd);
+            UITheme.ApplyModernStyle(btnEdit);
             pnlButtons.Controls.Add(btnEdit);
+            pnlButtons.Controls.Add(btnAdd);
 
             this.Controls.Add(dgv);
             this.Controls.Add(pnlButtons);

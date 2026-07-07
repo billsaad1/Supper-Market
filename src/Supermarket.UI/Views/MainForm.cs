@@ -23,87 +23,129 @@ namespace Supermarket.UI.Views
         private void SetupUI()
         {
             this.Text = "Supermarket System / نظام السوبر ماركت";
-            this.Size = new Size(1200, 800);
+            this.Size = new Size(1280, 800);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.IsMdiContainer = true;
+            this.BackColor = UITheme.ContentBg;
             this.Load += (s, e) => OpenForm(new DashboardView());
 
             bool isArabic = LanguageHelper.TranslationService.CurrentLanguage == Language.Arabic;
+            this.RightToLeft = isArabic ? RightToLeft.Yes : RightToLeft.No;
+
             sidePanel = new Panel {
                 Dock = isArabic ? DockStyle.Right : DockStyle.Left,
-                Width = 240,
-                BackColor = Color.FromArgb(33, 37, 41),
+                Width = 260,
+                BackColor = UITheme.SidebarBg,
                 AutoScroll = true
             };
 
-            headerPanel = new Panel { Dock = DockStyle.Top, Height = 65, BackColor = Color.FromArgb(52, 58, 64) };
-            lblTitle = new Label { Text = "DASHBOARD", ForeColor = Color.White, Font = new Font("Segoe UI", 16, FontStyle.Bold), Location = new Point(20, 15), AutoSize = true };
+            headerPanel = new Panel {
+                Dock = DockStyle.Top,
+                Height = 60,
+                BackColor = Color.White,
+                BorderStyle = BorderStyle.FixedSingle
+            };
+
+            lblTitle = new Label {
+                Text = isArabic ? "لوحة التحكم" : "DASHBOARD",
+                ForeColor = UITheme.TextPrimary,
+                Font = new Font("Segoe UI", 14, FontStyle.Bold),
+                Location = new Point(20, 15),
+                AutoSize = true
+            };
+
+            // Modern Search/Info bar in header (placeholder)
+            Panel userInfoPnl = new Panel { Dock = isArabic ? DockStyle.Left : DockStyle.Right, Width = 300 };
+            Label lblUser = new Label {
+                Text = $"Welcome, Admin",
+                ForeColor = UITheme.TextSecondary,
+                Font = UITheme.MainFont,
+                Dock = DockStyle.Fill,
+                TextAlign = ContentAlignment.MiddleRight,
+                Padding = new Padding(0, 0, 20, 0)
+            };
+            userInfoPnl.Controls.Add(lblUser);
 
             Button btnLang = new Button
             {
-                Text = LanguageHelper.TranslationService.CurrentLanguage == Language.Arabic ? "English" : "العربية",
-                ForeColor = Color.White,
+                Text = isArabic ? "English" : "العربية",
+                ForeColor = UITheme.PrimaryColor,
                 FlatStyle = FlatStyle.Flat,
                 Width = 80,
                 Height = 30,
                 Top = 15,
-                Left = 1100, // Approximate, will be anchored
-                Anchor = AnchorStyles.Top | AnchorStyles.Right
+                Left = isArabic ? 20 : 1100,
+                Anchor = isArabic ? AnchorStyles.Top | AnchorStyles.Left : AnchorStyles.Top | AnchorStyles.Right,
+                Font = new Font("Segoe UI", 9, FontStyle.Bold)
             };
+            btnLang.FlatAppearance.BorderColor = UITheme.PrimaryColor;
             btnLang.Click += (s, e) => {
                 LanguageHelper.TranslationService.CurrentLanguage =
-                    LanguageHelper.TranslationService.CurrentLanguage == Language.Arabic ? Language.English : Language.Arabic;
+                    isArabic ? Language.English : Language.Arabic;
                 Application.Restart();
             };
 
             headerPanel.Controls.Add(btnLang);
             headerPanel.Controls.Add(lblTitle);
+            headerPanel.Controls.Add(userInfoPnl);
 
-            int y = 0;
+            // Logo Section
+            Panel logoPnl = new Panel { Dock = DockStyle.Top, Height = 80, BackColor = Color.FromArgb(45, 50, 55) };
+            Label lblLogo = new Label {
+                Text = "BCREATIVE",
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 18, FontStyle.Bold),
+                Dock = DockStyle.Fill,
+                TextAlign = ContentAlignment.MiddleCenter
+            };
+            logoPnl.Controls.Add(lblLogo);
+            sidePanel.Controls.Add(logoPnl);
+
+            int y = 80;
             if (PermissionsManager.CanAccess(_userRole, "POS")) {
-                AddSectionLabel("--- OPERATIONS ---", ref y);
-                AddMenuButton("POS / نقطة البيع", ref y, (s, e) => OpenForm(new PosForm()));
-                AddMenuButton("Returns / المرتجعات", ref y, (s, e) => OpenForm(new SalesReturnForm()));
-                AddMenuButton("Shifts / الورديات", ref y, (s, e) => OpenForm(new ShiftClosingForm()));
+                AddSectionLabel(isArabic ? "--- العمليات ---" : "--- OPERATIONS ---", ref y);
+                AddMenuButton(isArabic ? "نقطة البيع" : "POS / Sales", ref y, (s, e) => OpenForm(new PosForm()));
+                AddMenuButton(isArabic ? "المرتجعات" : "Returns", ref y, (s, e) => OpenForm(new SalesReturnForm()));
+                AddMenuButton(isArabic ? "الورديات" : "Shifts", ref y, (s, e) => OpenForm(new ShiftClosingForm()));
             }
 
             if (PermissionsManager.CanAccess(_userRole, "Purchases")) {
-                AddMenuButton("Purchases / المشتريات", ref y, (s, e) => OpenForm(new PurchaseListForm()));
+                AddMenuButton(isArabic ? "المشتريات" : "Purchases", ref y, (s, e) => OpenForm(new PurchaseListForm()));
             }
 
             if (PermissionsManager.CanAccess(_userRole, "Items")) {
-                AddSectionLabel("--- INVENTORY ---", ref y);
-                AddMenuButton("Items / الأصناف", ref y, (s, e) => OpenForm(new ItemsForm()));
-                AddMenuButton("Categories / المجموعات", ref y, (s, e) => OpenForm(new CategoriesForm()));
-                AddMenuButton("Adjustments / تسويات", ref y, (s, e) => OpenForm(new AdjustmentForm()));
-                AddMenuButton("Waste / التوالف", ref y, (s, e) => OpenForm(new WasteForm()));
-                AddMenuButton("Promotions / العروض", ref y, (s, e) => OpenForm(new PromotionsForm()));
+                AddSectionLabel(isArabic ? "--- المخزون ---" : "--- INVENTORY ---", ref y);
+                AddMenuButton(isArabic ? "الأصناف" : "Items", ref y, (s, e) => OpenForm(new ItemsForm()));
+                AddMenuButton(isArabic ? "المجموعات" : "Categories", ref y, (s, e) => OpenForm(new CategoriesForm()));
+                AddMenuButton(isArabic ? "تسويات الجرد" : "Adjustments", ref y, (s, e) => OpenForm(new AdjustmentForm()));
+                AddMenuButton(isArabic ? "التوالف" : "Waste", ref y, (s, e) => OpenForm(new WasteForm()));
+                AddMenuButton(isArabic ? "العروض" : "Promotions", ref y, (s, e) => OpenForm(new PromotionsForm()));
             }
 
             if (PermissionsManager.CanAccess(_userRole, "Accounting")) {
-                AddSectionLabel("--- ACCOUNTING ---", ref y);
-                AddMenuButton("Accounts / الحسابات", ref y, (s, e) => OpenForm(new AccountsForm()));
-                AddMenuButton("Vouchers / السندات", ref y, (s, e) => OpenForm(new VouchersForm()));
-                AddMenuButton("Contacts / الجهات", ref y, (s, e) => OpenForm(new ContactsForm()));
+                AddSectionLabel(isArabic ? "--- المحاسبة ---" : "--- ACCOUNTING ---", ref y);
+                AddMenuButton(isArabic ? "دليل الحسابات" : "Accounts", ref y, (s, e) => OpenForm(new AccountsForm()));
+                AddMenuButton(isArabic ? "السندات المادية" : "Vouchers", ref y, (s, e) => OpenForm(new VouchersForm()));
+                AddMenuButton(isArabic ? "جهات الاتصال" : "Contacts", ref y, (s, e) => OpenForm(new ContactsForm()));
             }
 
             if (PermissionsManager.CanAccess(_userRole, "HR")) {
-                AddSectionLabel("--- HUMAN RESOURCES ---", ref y);
-                AddMenuButton("HR / الموظفين", ref y, (s, e) => OpenForm(new HRForm()));
+                AddSectionLabel(isArabic ? "--- الموارد البشرية ---" : "--- HUMAN RESOURCES ---", ref y);
+                AddMenuButton(isArabic ? "شؤون الموظفين" : "HR / Employees", ref y, (s, e) => OpenForm(new HRForm()));
             }
 
             if (PermissionsManager.CanAccess(_userRole, "Reports")) {
-                AddSectionLabel("--- REPORTS ---", ref y);
-                AddMenuButton("Reports / التقارير", ref y, (s, e) => OpenForm(new DetailedReportsForm()));
+                AddSectionLabel(isArabic ? "--- التقارير ---" : "--- REPORTS ---", ref y);
+                AddMenuButton(isArabic ? "التقارير المفصلة" : "Detailed Reports", ref y, (s, e) => OpenForm(new DetailedReportsForm()));
             }
 
             if (PermissionsManager.CanAccess(_userRole, "Settings")) {
-                AddSectionLabel("--- SYSTEM ---", ref y);
-                AddMenuButton("Company / الشركة", ref y, (s, e) => OpenForm(new CompanySettingsForm()));
-                AddMenuButton("Users / المستخدمين", ref y, (s, e) => OpenForm(new UsersForm()));
-                AddMenuButton("Stores / المخازن", ref y, (s, e) => OpenForm(new StoresForm()));
-                AddMenuButton("Permissions / الصلاحيات", ref y, (s, e) => OpenForm(new PermissionsForm()));
-                AddMenuButton("Database / قاعدة البيانات", ref y, (s, e) => {
+                AddSectionLabel(isArabic ? "--- النظام ---" : "--- SYSTEM ---", ref y);
+                AddMenuButton(isArabic ? "بيانات الشركة" : "Company Info", ref y, (s, e) => OpenForm(new CompanySettingsForm()));
+                AddMenuButton(isArabic ? "إدارة المستخدمين" : "Users", ref y, (s, e) => OpenForm(new UsersForm()));
+                AddMenuButton(isArabic ? "المخازن" : "Stores", ref y, (s, e) => OpenForm(new StoresForm()));
+                AddMenuButton(isArabic ? "الصلاحيات" : "Permissions", ref y, (s, e) => OpenForm(new PermissionsForm()));
+                AddMenuButton(isArabic ? "قاعدة البيانات" : "Database", ref y, (s, e) => {
                     using (var dbSet = new DatabaseSettingsForm()) dbSet.ShowDialog();
                 });
             }
@@ -136,28 +178,38 @@ namespace Supermarket.UI.Views
             bool isArabic = LanguageHelper.TranslationService.CurrentLanguage == Language.Arabic;
             Button btn = new Button
             {
-                Text = text,
+                Text = "  " + text,
                 Top = y,
-                Width = 240,
-                Height = 50,
+                Width = 260,
+                Height = 45,
                 FlatStyle = FlatStyle.Flat,
-                ForeColor = Color.FromArgb(248, 249, 250),
-                TextAlign = isArabic ? ContentAlignment.MiddleRight : ContentAlignment.MiddleLeft,
+                ForeColor = Color.FromArgb(210, 210, 210),
+                TextAlign = ContentAlignment.MiddleLeft,
                 Padding = isArabic ? new Padding(0, 0, 15, 0) : new Padding(15, 0, 0, 0),
-                Font = new Font("Segoe UI", 10.5f),
+                Font = new Font("Segoe UI", 10f),
                 Cursor = Cursors.Hand
             };
+            if (isArabic) btn.TextAlign = ContentAlignment.MiddleRight;
+
             btn.FlatAppearance.BorderSize = 0;
-            btn.FlatAppearance.MouseOverBackColor = Color.FromArgb(73, 80, 87);
+            btn.FlatAppearance.MouseOverBackColor = Color.FromArgb(60, 65, 70);
 
             btn.Click += (s, e) => {
                 lblTitle.Text = text.ToUpper();
                 onClick(s, e);
-                foreach(Control c in sidePanel.Controls) if(c is Button b) b.BackColor = Color.Transparent;
-                btn.BackColor = Color.FromArgb(0, 123, 255);
+                foreach(Control c in sidePanel.Controls) {
+                    if(c is Button b && b.Tag == null) {
+                        b.BackColor = Color.Transparent;
+                        b.ForeColor = Color.FromArgb(210, 210, 210);
+                        b.Font = new Font("Segoe UI", 10f);
+                    }
+                }
+                btn.BackColor = UITheme.PrimaryColor;
+                btn.ForeColor = Color.White;
+                btn.Font = new Font("Segoe UI", 10f, FontStyle.Bold);
             };
             sidePanel.Controls.Add(btn);
-            y += 50;
+            y += 45;
         }
 
         private void OpenForm(Form frm)

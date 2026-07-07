@@ -29,72 +29,46 @@ namespace Supermarket.UI.Views
         private void SetupUI()
         {
             this.Text = "Supermarket System - Login";
-            this.Size = new Size(450, 350);
+            this.Size = new Size(450, 400);
             this.StartPosition = FormStartPosition.CenterScreen;
-            this.FormBorderStyle = FormBorderStyle.FixedDialog;
-            this.MaximizeBox = false;
-            this.BackColor = Color.FromArgb(240, 240, 240);
-            this.Font = new Font("Segoe UI", 10);
+            this.FormBorderStyle = FormBorderStyle.None;
+            this.BackColor = Color.White;
 
             panelHeader = new Panel
             {
                 Dock = DockStyle.Top,
-                Height = 60,
-                BackColor = Color.FromArgb(45, 52, 71)
+                Height = 100,
+                BackColor = UITheme.PrimaryColor
             };
 
             lblTitle = new Label
             {
-                Text = "Supermarket System / نظام السوبر ماركت",
+                Text = "BCREATIVE\nSupermarket POS",
                 ForeColor = Color.White,
-                Font = new Font("Segoe UI", 14, FontStyle.Bold),
+                Font = new Font("Segoe UI", 16, FontStyle.Bold),
                 Dock = DockStyle.Fill,
                 TextAlign = ContentAlignment.MiddleCenter
             };
             panelHeader.Controls.Add(lblTitle);
 
-            lblUsername = new Label
-            {
-                Text = "Username / اسم المستخدم",
-                Location = new Point(50, 80),
-                Size = new Size(350, 25),
-                Tag = "lblUsername"
-            };
-            txtUsername = new TextBox
-            {
-                Location = new Point(50, 110),
-                Width = 350,
-                Height = 30
-            };
+            lblUsername = new Label { Text = "Username / اسم المستخدم", Location = new Point(50, 120), Size = new Size(350, 25), Font = UITheme.MainFont };
+            txtUsername = new TextBox { Location = new Point(50, 145), Width = 350, Font = new Font("Segoe UI", 12) };
             txtUsername.TextChanged += (s, e) => _viewModel.Username = txtUsername.Text;
 
-            lblPassword = new Label
-            {
-                Text = "Password / كلمة المرور",
-                Location = new Point(50, 150),
-                Size = new Size(350, 25),
-                Tag = "lblPassword"
-            };
-            txtPassword = new TextBox
-            {
-                Location = new Point(50, 180),
-                Width = 350,
-                Height = 30,
-                PasswordChar = '*'
-            };
+            lblPassword = new Label { Text = "Password / كلمة المرور", Location = new Point(50, 185), Size = new Size(350, 25), Font = UITheme.MainFont };
+            txtPassword = new TextBox { Location = new Point(50, 210), Width = 350, Font = new Font("Segoe UI", 12), PasswordChar = '*' };
             txtPassword.TextChanged += (s, e) => _viewModel.Password = txtPassword.Text;
 
             btnLogin = new Button
             {
-                Text = "Login / دخول",
-                Location = new Point(50, 230),
+                Text = "LOGIN / دخول",
+                Location = new Point(50, 270),
                 Width = 350,
-                Height = 45,
-                BackColor = Color.FromArgb(0, 122, 204),
+                Height = 50,
+                BackColor = UITheme.PrimaryColor,
                 ForeColor = Color.White,
                 FlatStyle = FlatStyle.Flat,
-                Font = new Font("Segoe UI", 12, FontStyle.Bold),
-                Tag = "btnLogin"
+                Font = new Font("Segoe UI", 12, FontStyle.Bold)
             };
             btnLogin.FlatAppearance.BorderSize = 0;
             btnLogin.Click += BtnLogin_Click;
