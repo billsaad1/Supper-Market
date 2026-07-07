@@ -18,6 +18,81 @@ namespace Supermarket.DAL
             _connectionString = connectionString;
         }
 
+        public async Task<IEnumerable<dynamic>> GetPurchaseInvoicesAsync()
+        {
+            using (IDbConnection db = new SqlConnection(_connectionString))
+            {
+                string sql = @"SELECT p.*, s.SupplierName, st.StoreName
+                               FROM PurchaseInvoices p
+                               JOIN Suppliers s ON p.SupplierID = s.SupplierID
+                               JOIN Stores st ON p.StoreID = st.StoreID
+                               ORDER BY p.InvoiceDate DESC";
+                return await db.QueryAsync(sql);
+            }
+        }
+
+        public async Task<PurchaseInvoice> GetPurchaseInvoiceHeaderAsync(int id)
+        {
+            using (IDbConnection db = new SqlConnection(_connectionString))
+            {
+                return await db.QueryFirstOrDefaultAsync<PurchaseInvoice>("SELECT * FROM PurchaseInvoices WHERE PurchaseID = @id", new { id });
+            }
+        }
+
+        public async Task<IEnumerable<dynamic>> GetPurchaseInvoiceItemsAsync(int id)
+        {
+            using (IDbConnection db = new SqlConnection(_connectionString))
+            {
+                string sql = @"SELECT pi.*, i.ItemName, i.Barcode
+                               FROM PurchaseInvoiceItems pi
+                               JOIN Items i ON pi.ItemID = i.ItemID
+                               WHERE pi.PurchaseID = @id";
+                return await db.QueryAsync(sql, new { id });
+            }
+        }
+
+        public async Task DeletePurchaseInvoiceAsync(int id)
+        {
+            using (IDbConnection db = new SqlConnection(_connectionString))
+            {
+                db.Open();
+                using (var transaction = db.BeginTransaction())
+                {
+                    try
+                    {
+                        var items = await db.QueryAsync<PurchaseInvoiceItem>("SELECT * FROM PurchaseInvoiceItems WHERE PurchaseID = @id", new { id }, transaction);
+                        var invoice = await db.QueryFirstOrDefaultAsync<PurchaseInvoice>("SELECT * FROM PurchaseInvoices WHERE PurchaseID = @id", new { id }, transaction);
+
+                        foreach (var item in items)
+                        {
+                            // 1. Revert Stock
+                            await db.ExecuteAsync("UPDATE Stock SET Quantity = Quantity - @Quantity WHERE ItemID = @ItemID AND StoreID = @StoreID",
+                                new { item.ItemID, invoice.StoreID, item.Quantity }, transaction);
+
+                            // 2. Remove Movement
+                            await db.ExecuteAsync("DELETE FROM StockMovement WHERE ReferenceID = @id AND MovementType = 'Purchase'", new { id }, transaction);
+                        }
+
+                        // 3. Delete accounting entries (simplified: find by description)
+                        string desc = "Purchase Invoice: " + invoice.InvoiceNumber;
+                        var journalId = await db.QueryFirstOrDefaultAsync<int?>("SELECT JournalID FROM JournalEntries WHERE Description = @desc", new { desc }, transaction);
+                        if (journalId.HasValue)
+                        {
+                            await db.ExecuteAsync("DELETE FROM JournalEntryDetails WHERE JournalID = @jid", new { jid = journalId.Value }, transaction);
+                            await db.ExecuteAsync("DELETE FROM JournalEntries WHERE JournalID = @jid", new { jid = journalId.Value }, transaction);
+                        }
+
+                        // 4. Delete Invoice
+                        await db.ExecuteAsync("DELETE FROM PurchaseInvoiceItems WHERE PurchaseID = @id", new { id }, transaction);
+                        await db.ExecuteAsync("DELETE FROM PurchaseInvoices WHERE PurchaseID = @id", new { id }, transaction);
+
+                        transaction.Commit();
+                    }
+                    catch { transaction.Rollback(); throw; }
+                }
+            }
+        }
+
         public async Task<int> SavePurchaseInvoiceAsync(PurchaseInvoice invoice, List<PurchaseInvoiceItem> items)
         {
             using (IDbConnection db = new SqlConnection(_connectionString))

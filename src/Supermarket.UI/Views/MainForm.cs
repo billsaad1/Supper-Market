@@ -68,7 +68,7 @@ namespace Supermarket.UI.Views
             }
 
             if (PermissionsManager.CanAccess(_userRole, "Purchases")) {
-                AddMenuButton("Purchases / المشتريات", ref y, (s, e) => OpenForm(new PurchaseForm()));
+                AddMenuButton("Purchases / المشتريات", ref y, (s, e) => OpenForm(new PurchaseListForm()));
             }
 
             if (PermissionsManager.CanAccess(_userRole, "Items")) {

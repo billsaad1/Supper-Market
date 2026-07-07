@@ -63,6 +63,44 @@ namespace Supermarket.BLL.Services
             };
             try { pd.Print(); } catch { /* Ignore printer errors in demo */ }
         }
+
+        public void PrintPurchaseInvoice(string invNum, string supplier, string store, List<ReceiptItem> items, decimal total)
+        {
+            PrintDocument pd = new PrintDocument();
+            pd.DefaultPageSettings.PaperSize = new PaperSize("A4", 827, 1169);
+            pd.PrintPage += (s, e) => {
+                Graphics g = e.Graphics;
+                Font fTitle = new Font("Segoe UI", 16, FontStyle.Bold);
+                Font fHeader = new Font("Segoe UI", 11, FontStyle.Bold);
+                Font fNormal = new Font("Segoe UI", 10);
+
+                g.DrawString("PURCHASE INVOICE / فاتورة مشتريات", fTitle, Brushes.Black, 250, 50);
+                g.DrawString($"Invoice #: {invNum}", fNormal, Brushes.Black, 50, 100);
+                g.DrawString($"Supplier: {supplier}", fNormal, Brushes.Black, 50, 120);
+                g.DrawString($"Store: {store}", fNormal, Brushes.Black, 50, 140);
+                g.DrawString($"Date: {DateTime.Now:yyyy-MM-dd}", fNormal, Brushes.Black, 600, 100);
+
+                int y = 180;
+                g.DrawRectangle(Pens.Black, 50, y, 700, 30);
+                g.DrawString("Item / الصنف", fHeader, Brushes.Black, 60, y + 5);
+                g.DrawString("Qty", fHeader, Brushes.Black, 400, y + 5);
+                g.DrawString("Price", fHeader, Brushes.Black, 500, y + 5);
+                g.DrawString("Total", fHeader, Brushes.Black, 650, y + 5);
+
+                y += 40;
+                foreach(var item in items) {
+                    g.DrawString(item.Name, fNormal, Brushes.Black, 60, y);
+                    g.DrawString(item.Qty.ToString(), fNormal, Brushes.Black, 400, y);
+                    g.DrawString(item.Price.ToString("F2"), fNormal, Brushes.Black, 500, y);
+                    g.DrawString((item.Qty * item.Price).ToString("F2"), fNormal, Brushes.Black, 650, y);
+                    y += 25;
+                }
+
+                g.DrawLine(Pens.Black, 50, y + 10, 750, y + 10);
+                g.DrawString($"GRAND TOTAL: {total:F2} ريال", fHeader, Brushes.Black, 550, y + 30);
+            };
+            try { pd.Print(); } catch { }
+        }
     }
 
     public class ReceiptItem
