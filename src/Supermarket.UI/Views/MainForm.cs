@@ -23,18 +23,30 @@ namespace Supermarket.UI.Views
         private void SetupUI()
         {
             this.Text = "Supermarket System / نظام السوبر ماركت";
-            this.Size = new Size(1280, 800);
+            this.Size = new Size(1366, 768);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.IsMdiContainer = true;
             this.BackColor = UITheme.ContentBg;
-            this.Load += (s, e) => OpenForm(new DashboardView());
+            this.Load += (s, e) => {
+                var pos = new PosForm();
+                OpenForm(pos);
+                // Highlight POS button on load
+                foreach(Control c in sidePanel.Controls) {
+                    if(c is Button b && (b.Text.Contains("نقطة") || b.Text.Contains("POS"))) {
+                        b.BackColor = UITheme.SidebarSelected;
+                        b.ForeColor = Color.White;
+                        b.Font = new Font("Segoe UI", 10f, FontStyle.Bold);
+                        lblTitle.Text = b.Text.Trim().ToUpper();
+                    }
+                }
+            };
 
             bool isArabic = LanguageHelper.TranslationService.CurrentLanguage == Language.Arabic;
             this.RightToLeft = isArabic ? RightToLeft.Yes : RightToLeft.No;
 
             sidePanel = new Panel {
                 Dock = isArabic ? DockStyle.Right : DockStyle.Left,
-                Width = 260,
+                Width = 240,
                 BackColor = UITheme.SidebarBg,
                 AutoScroll = true
             };
@@ -162,15 +174,17 @@ namespace Supermarket.UI.Views
             Label lbl = new Label {
                 Text = text,
                 ForeColor = Color.FromArgb(108, 117, 125),
-                Font = new Font("Segoe UI", 9, FontStyle.Bold),
-                Top = y + 15,
-                Left = 15,
-                Width = 210,
+                Font = new Font("Segoe UI", 8, FontStyle.Regular),
+                Top = y + 10,
+                Left = 0,
+                Width = 240,
+                Height = 30,
                 AutoSize = false,
-                TextAlign = isArabic ? ContentAlignment.MiddleRight : ContentAlignment.MiddleLeft
+                TextAlign = isArabic ? ContentAlignment.MiddleRight : ContentAlignment.MiddleLeft,
+                Padding = isArabic ? new Padding(0, 0, 10, 0) : new Padding(10, 0, 0, 0)
             };
             sidePanel.Controls.Add(lbl);
-            y += 40;
+            y += 35;
         }
 
         private void AddMenuButton(string text, ref int y, EventHandler onClick)
@@ -178,15 +192,15 @@ namespace Supermarket.UI.Views
             bool isArabic = LanguageHelper.TranslationService.CurrentLanguage == Language.Arabic;
             Button btn = new Button
             {
-                Text = "  " + text,
+                Text = text,
                 Top = y,
-                Width = 260,
-                Height = 45,
+                Width = 240,
+                Height = 40,
                 FlatStyle = FlatStyle.Flat,
-                ForeColor = Color.FromArgb(210, 210, 210),
+                ForeColor = Color.FromArgb(200, 200, 200),
                 TextAlign = ContentAlignment.MiddleLeft,
                 Padding = isArabic ? new Padding(0, 0, 15, 0) : new Padding(15, 0, 0, 0),
-                Font = new Font("Segoe UI", 10f),
+                Font = new Font("Segoe UI", 9.5f),
                 Cursor = Cursors.Hand
             };
             if (isArabic) btn.TextAlign = ContentAlignment.MiddleRight;
@@ -195,21 +209,21 @@ namespace Supermarket.UI.Views
             btn.FlatAppearance.MouseOverBackColor = Color.FromArgb(60, 65, 70);
 
             btn.Click += (s, e) => {
-                lblTitle.Text = text.ToUpper();
+                lblTitle.Text = text.Trim().ToUpper();
                 onClick(s, e);
                 foreach(Control c in sidePanel.Controls) {
-                    if(c is Button b && b.Tag == null) {
+                    if(c is Button b) {
                         b.BackColor = Color.Transparent;
-                        b.ForeColor = Color.FromArgb(210, 210, 210);
-                        b.Font = new Font("Segoe UI", 10f);
+                        b.ForeColor = Color.FromArgb(200, 200, 200);
+                        b.Font = new Font("Segoe UI", 9.5f);
                     }
                 }
-                btn.BackColor = UITheme.PrimaryColor;
+                btn.BackColor = UITheme.SidebarSelected;
                 btn.ForeColor = Color.White;
-                btn.Font = new Font("Segoe UI", 10f, FontStyle.Bold);
+                btn.Font = new Font("Segoe UI", 9.5f, FontStyle.Bold);
             };
             sidePanel.Controls.Add(btn);
-            y += 45;
+            y += 40;
         }
 
         private void OpenForm(Form frm)

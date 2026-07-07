@@ -13,10 +13,11 @@ namespace Supermarket.UI.Helpers
         public static Color WarningColor = Color.FromArgb(255, 193, 7);     // Yellow
         public static Color InfoColor = Color.FromArgb(23, 162, 184);       // Cyan/Teal
 
-        public static Color SidebarBg = Color.FromArgb(33, 37, 41);        // Dark gray/black
-        public static Color HeaderBg = Color.White;                         // White header like image
-        public static Color ContentBg = Color.FromArgb(244, 246, 249);     // Light gray background
-        public static Color GridHeaderBg = Color.FromArgb(0, 115, 183);    // Blue grid header
+        public static Color SidebarBg = Color.FromArgb(45, 45, 48);        // Professional dark sidebar
+        public static Color SidebarSelected = Color.FromArgb(0, 122, 255); // Active blue
+        public static Color HeaderBg = Color.White;
+        public static Color ContentBg = Color.FromArgb(240, 242, 245);
+        public static Color GridHeaderBg = Color.FromArgb(0, 115, 183);
 
         public static Color TextPrimary = Color.FromArgb(33, 37, 41);
         public static Color TextSecondary = Color.FromArgb(108, 117, 125);

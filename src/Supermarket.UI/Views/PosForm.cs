@@ -53,24 +53,25 @@ namespace Supermarket.UI.Views
             // --- Top Panel (Action Bar) ---
             Panel pnlTopActions = new Panel { Dock = DockStyle.Top, Height = 55, BackColor = Color.White, BorderStyle = BorderStyle.FixedSingle };
 
-            btnPay = CreateStyledButton(isArabic ? "حفظ (F5)" : "SAVE (F5)", UITheme.SuccessColor, 120);
+            btnPay = CreateStyledButton(isArabic ? "حفظ (F5)" : "SAVE (F5)", Color.FromArgb(40, 167, 69), 120);
             btnPay.Click += BtnPay_Click;
 
-            btnDiscount = CreateStyledButton(isArabic ? "خصم (F10)" : "DISCOUNT (F10)", UITheme.WarningColor, 130);
+            btnDiscount = CreateStyledButton(isArabic ? "خصم (F10)" : "DISCOUNT (F10)", Color.FromArgb(255, 193, 7), 130);
             btnDiscount.Click += BtnDiscount_Click;
 
-            btnCredit = CreateStyledButton(isArabic ? "آجل (F12)" : "CREDIT (F12)", UITheme.InfoColor, 120);
+            btnCredit = CreateStyledButton(isArabic ? "آجل (F12)" : "CREDIT (F12)", Color.FromArgb(23, 162, 184), 120);
             btnCredit.Click += BtnCredit_Click;
 
-            btnHold = CreateStyledButton(isArabic ? "تعليق" : "HOLD", Color.DimGray, 100);
+            btnHold = CreateStyledButton(isArabic ? "تعليق" : "HOLD", Color.FromArgb(108, 117, 125), 100);
             btnHold.Click += BtnHold_Click;
 
-            btnResume = CreateStyledButton(isArabic ? "استعادة" : "RESUME", Color.DimGray, 100);
+            btnResume = CreateStyledButton(isArabic ? "استعادة" : "RESUME", Color.FromArgb(108, 117, 125), 100);
             btnResume.Click += BtnResume_Click;
 
-            btnClear = CreateStyledButton(isArabic ? "جديد (Esc)" : "NEW (Esc)", UITheme.DangerColor, 110);
+            btnClear = CreateStyledButton(isArabic ? "جديد (Esc)" : "NEW (Esc)", Color.FromArgb(220, 53, 69), 110);
             btnClear.Click += (s, e) => ResetInvoice();
 
+            // Order matching image: Save, Discount, Credit, Hold, Resume, New (from right to left in RTL)
             pnlTopActions.Controls.AddRange(new Control[] { btnClear, btnResume, btnHold, btnCredit, btnDiscount, btnPay });
 
             // --- Secondary Header (Search & Customer) ---
@@ -96,12 +97,12 @@ namespace Supermarket.UI.Views
             // --- Main Layout ---
             SplitContainer mainSplit = new SplitContainer {
                 Dock = DockStyle.Fill,
-                SplitterDistance = 800,
+                SplitterDistance = 900,
                 RightToLeft = isArabic ? RightToLeft.Yes : RightToLeft.No
             };
 
-            // LEFT SIDE: Invoice Grid & Summary
-            Panel leftPanel = new Panel { Dock = DockStyle.Fill, Padding = new Padding(10) };
+            // PANEL 1 (Right in RTL): Invoice Grid & Summary
+            Panel pnlInvoice = new Panel { Dock = DockStyle.Fill, Padding = new Padding(10) };
 
             dgvInvoice = new DataGridView {
                 Dock = DockStyle.Fill,
@@ -112,7 +113,7 @@ namespace Supermarket.UI.Views
             UITheme.ApplyModernStyle(dgvInvoice);
 
             dgvInvoice.Columns.Add(new DataGridViewTextBoxColumn { Name = "ItemID", Visible = false });
-            dgvInvoice.Columns.Add(new DataGridViewTextBoxColumn { Name = "Item", HeaderText = isArabic ? "اسم الصنف" : "Item Name", Width = 300 });
+            dgvInvoice.Columns.Add(new DataGridViewTextBoxColumn { Name = "Item", HeaderText = isArabic ? "اسم الصنف" : "Item Name", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill });
             dgvInvoice.Columns.Add(new DataGridViewTextBoxColumn { Name = "Qty", HeaderText = isArabic ? "الكمية" : "Qty", Width = 80 });
             dgvInvoice.Columns.Add(new DataGridViewTextBoxColumn { Name = "UnitPrice", HeaderText = isArabic ? "السعر" : "Price", Width = 100 });
             dgvInvoice.Columns.Add(new DataGridViewTextBoxColumn { Name = "Total", HeaderText = isArabic ? "الإجمالي" : "Total", Width = 120 });
@@ -129,36 +130,36 @@ namespace Supermarket.UI.Views
             dgvInvoice.Columns.Add(btnDel);
             dgvInvoice.CellContentClick += (s, e) => { if(e.ColumnIndex == dgvInvoice.Columns["Delete"].Index) RemoveSelectedItem(); };
 
-            Panel pnlSummary = new Panel { Dock = DockStyle.Bottom, Height = 140, BackColor = Color.White, Padding = new Padding(15) };
+            Panel pnlSummary = new Panel { Dock = DockStyle.Bottom, Height = 160, BackColor = Color.White, Padding = new Padding(20) };
             pnlSummary.Paint += (s, e) => { e.Graphics.DrawLine(Pens.LightGray, 0, 0, pnlSummary.Width, 0); };
 
-            lblSubtotal = new Label { Text = "0.00", Font = UITheme.HeaderFont, Location = new Point(15, 15), AutoSize = true };
-            lblTax = new Label { Text = "0.00", Font = UITheme.MainFont, Location = new Point(15, 45), AutoSize = true, ForeColor = UITheme.TextSecondary };
-            lblDiscount = new Label { Text = "0.00", Font = UITheme.MainFont, Location = new Point(15, 75), AutoSize = true, ForeColor = UITheme.DangerColor };
+            lblSubtotal = new Label { Text = "0.00", Font = new Font("Segoe UI", 12, FontStyle.Bold), Location = new Point(20, 20), AutoSize = true };
+            lblTax = new Label { Text = "0.00", Font = new Font("Segoe UI", 10), Location = new Point(20, 55), AutoSize = true, ForeColor = Color.Gray };
+            lblDiscount = new Label { Text = "0.00", Font = new Font("Segoe UI", 10), Location = new Point(20, 90), AutoSize = true, ForeColor = Color.FromArgb(220, 53, 69) };
 
             lblTotal = new Label {
                 Text = "0.00",
-                Font = new Font("Segoe UI", 32, FontStyle.Bold),
-                ForeColor = UITheme.SuccessColor,
+                Font = new Font("Segoe UI", 48, FontStyle.Bold),
+                ForeColor = Color.FromArgb(40, 167, 69),
                 Dock = DockStyle.Right,
                 TextAlign = ContentAlignment.MiddleRight,
                 Width = 400
             };
 
             pnlSummary.Controls.AddRange(new Control[] { lblSubtotal, lblTax, lblDiscount, lblTotal });
-            leftPanel.Controls.Add(dgvInvoice);
-            leftPanel.Controls.Add(pnlSummary);
+            pnlInvoice.Controls.Add(dgvInvoice);
+            pnlInvoice.Controls.Add(pnlSummary);
 
-            // RIGHT SIDE: Categories & Items (Touch Friendly)
-            Panel rightPanel = new Panel { Dock = DockStyle.Fill, Padding = new Padding(5) };
-            pnlCategories = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 120, AutoScroll = true, BackColor = Color.FromArgb(235, 235, 235) };
+            // PANEL 2 (Left in RTL): Categories & Items
+            Panel pnlCatalog = new Panel { Dock = DockStyle.Fill, Padding = new Padding(5) };
+            pnlCategories = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 200, AutoScroll = true, BackColor = Color.FromArgb(240, 240, 240) };
             pnlItems = new FlowLayoutPanel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = Color.White };
 
-            rightPanel.Controls.Add(pnlItems);
-            rightPanel.Controls.Add(pnlCategories);
+            pnlCatalog.Controls.Add(pnlItems);
+            pnlCatalog.Controls.Add(pnlCategories);
 
-            mainSplit.Panel1.Controls.Add(leftPanel);
-            mainSplit.Panel2.Controls.Add(rightPanel);
+            mainSplit.Panel1.Controls.Add(pnlInvoice);
+            mainSplit.Panel2.Controls.Add(pnlCatalog);
 
             this.Controls.Add(mainSplit);
             this.Controls.Add(pnlHeader);
@@ -207,19 +208,29 @@ namespace Supermarket.UI.Views
 
         private Button CreateCategoryButton(string text, int id)
         {
+            bool isArabic = LanguageHelper.TranslationService.CurrentLanguage == Supermarket.BLL.Services.Language.Arabic;
+            // In image, 'All' is Gray, 'General' is Blue
+            Color bg = id == 0 ? Color.FromArgb(108, 117, 125) : Color.FromArgb(0, 123, 255);
+
             Button btn = new Button {
                 Text = text,
-                Width = 100,
+                Width = 90,
                 Height = 80,
-                BackColor = id == 0 ? Color.DimGray : UITheme.PrimaryColor,
+                BackColor = bg,
                 ForeColor = Color.White,
                 FlatStyle = FlatStyle.Flat,
-                Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                Font = new Font("Segoe UI", 10, FontStyle.Bold),
                 Tag = id,
-                Margin = new Padding(3)
+                Margin = new Padding(2)
             };
             btn.FlatAppearance.BorderSize = 0;
-            btn.Click += async (s, e) => await LoadItemsByCategory((int)btn.Tag);
+            btn.Click += async (s, e) => {
+                await LoadItemsByCategory((int)btn.Tag);
+                // Visual feedback for selection
+                foreach(Control c in pnlCategories.Controls) if(c is Button b) b.FlatAppearance.BorderSize = 0;
+                btn.FlatAppearance.BorderSize = 2;
+                btn.FlatAppearance.BorderColor = Color.White;
+            };
             return btn;
         }
 
