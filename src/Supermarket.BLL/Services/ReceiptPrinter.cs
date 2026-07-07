@@ -10,23 +10,56 @@ namespace Supermarket.BLL.Services
         public void PrintReceipt(string invoiceNum, string cashier, List<ReceiptItem> items, decimal subtotal, decimal tax, decimal total, string qrCode)
         {
             PrintDocument pd = new PrintDocument();
+            pd.DefaultPageSettings.PaperSize = new PaperSize("Receipt", 300, 800);
             pd.PrintPage += (s, e) => {
                 Graphics g = e.Graphics;
-                Font fTitle = new Font("Arial", 12, FontStyle.Bold);
-                Font fNormal = new Font("Arial", 10);
+                Font fTitle = new Font("Segoe UI", 12, FontStyle.Bold);
+                Font fNormal = new Font("Segoe UI", 9);
+                Font fSmall = new Font("Segoe UI", 8);
 
-                g.DrawString("--- RECEIPT / إيصال ---", fTitle, Brushes.Black, 20, 20);
-                g.DrawString($"Inv: {invoiceNum}", fNormal, Brushes.Black, 20, 50);
-                g.DrawString($"Cashier: {cashier}", fNormal, Brushes.Black, 20, 70);
+                int center = 150;
+                StringFormat sf = new StringFormat { Alignment = StringAlignment.Center };
+                StringFormat rf = new StringFormat { Alignment = StringAlignment.Far };
 
-                int y = 100;
+                g.DrawString("SUPERMARKET SYSTEM", fTitle, Brushes.Black, center, 20, sf);
+                g.DrawString("نظام السوبر ماركت المتكامل", fNormal, Brushes.Black, center, 45, sf);
+
+                g.DrawString(new string('-', 40), fNormal, Brushes.Black, center, 65, sf);
+
+                g.DrawString($"Invoice: {invoiceNum}", fSmall, Brushes.Black, 20, 85);
+                g.DrawString($"Date: {DateTime.Now:yyyy-MM-dd HH:mm}", fSmall, Brushes.Black, 20, 100);
+                g.DrawString($"Cashier: {cashier}", fSmall, Brushes.Black, 20, 115);
+
+                g.DrawString(new string('=', 40), fNormal, Brushes.Black, center, 135, sf);
+
+                int y = 155;
                 foreach(var item in items) {
-                    g.DrawString($"{item.Name} x{item.Qty}", fNormal, Brushes.Black, 20, y);
-                    g.DrawString($"{item.Price * item.Qty:F2} ريال", fNormal, Brushes.Black, 200, y);
-                    y += 20;
+                    g.DrawString(item.Name, fNormal, Brushes.Black, 20, y);
+                    g.DrawString($"{item.Qty} x {item.Price:F2}", fSmall, Brushes.Black, 20, y + 18);
+                    g.DrawString($"{item.Price * item.Qty:F2}", fNormal, Brushes.Black, 280, y, rf);
+                    y += 40;
                 }
 
-                g.DrawString($"Total: {total:F2} ريال", fTitle, Brushes.Black, 20, y + 20);
+                g.DrawString(new string('-', 40), fNormal, Brushes.Black, center, y + 10, sf);
+                y += 30;
+
+                g.DrawString("Subtotal / المجموع:", fNormal, Brushes.Black, 20, y);
+                g.DrawString($"{subtotal:F2} ريال", fNormal, Brushes.Black, 280, y, rf);
+
+                g.DrawString("VAT 15% / الضريبة:", fNormal, Brushes.Black, 20, y + 20);
+                g.DrawString($"{tax:F2} ريال", fNormal, Brushes.Black, 280, y + 20, rf);
+
+                g.DrawString("TOTAL / الإجمالي:", fTitle, Brushes.Black, 20, y + 45);
+                g.DrawString($"{total:F2} ريال", fTitle, Brushes.Black, 280, y + 45, rf);
+
+                y += 80;
+                // QR Code Placeholder (Draw a box if no real QR gen)
+                g.DrawRectangle(Pens.Black, center - 40, y, 80, 80);
+                g.DrawString("ZATCA QR", fSmall, Brushes.Black, center, y + 30, sf);
+
+                y += 100;
+                g.DrawString("Thank you for your visit!", fNormal, Brushes.Black, center, y, sf);
+                g.DrawString("شكراً لزيارتكم!", fNormal, Brushes.Black, center, y + 20, sf);
             };
             try { pd.Print(); } catch { /* Ignore printer errors in demo */ }
         }

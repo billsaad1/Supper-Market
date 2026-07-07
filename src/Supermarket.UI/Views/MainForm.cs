@@ -166,6 +166,12 @@ namespace Supermarket.UI.Views
             frm.MdiParent = this;
             frm.FormBorderStyle = FormBorderStyle.None;
             frm.Dock = DockStyle.Fill;
+
+            // Pass User info if form supports it (duck typing or interface)
+            if (frm is PosForm pos) {
+                // PosForm uses current user context
+            }
+
             frm.Show();
         }
 
