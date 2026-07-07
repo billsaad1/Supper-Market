@@ -29,13 +29,13 @@ namespace Supermarket.UI.Views
             this.BackColor = UITheme.ContentBg;
             bool isArabic = LanguageHelper.TranslationService.CurrentLanguage == Supermarket.BLL.Services.Language.Arabic;
 
-            Panel top = new Panel { Dock = DockStyle.Top, Height = 60, BackColor = Color.White, Padding = new Padding(10) };
+            Panel top = new Panel { Dock = DockStyle.Top, Height = 60, BackColor = Color.White, Padding = new Padding(10), BorderStyle = BorderStyle.FixedSingle };
 
             Button btnNew = new Button {
                 Text = isArabic ? "+ فاتورة جديدة" : "+ NEW INVOICE",
                 Dock = isArabic ? DockStyle.Left : DockStyle.Right,
                 Width = 180,
-                BackColor = UITheme.SuccessColor,
+                BackColor = Color.FromArgb(40, 167, 69),
                 ForeColor = Color.White,
                 Font = new Font("Segoe UI", 10, FontStyle.Bold),
                 FlatStyle = FlatStyle.Flat
@@ -74,9 +74,9 @@ namespace Supermarket.UI.Views
             dgv.Columns.Add(new DataGridViewTextBoxColumn { Name = "Date", DataPropertyName = "InvoiceDate", HeaderText = isArabic ? "التاريخ" : "Date", Width = 160 });
             dgv.Columns.Add(new DataGridViewTextBoxColumn { Name = "Total", DataPropertyName = "TotalAmount", HeaderText = isArabic ? "الإجمالي" : "Total", Width = 120 });
 
-            Panel pnlActions = new Panel { Dock = DockStyle.Bottom, Height = 60, BackColor = Color.White };
+            Panel pnlActions = new Panel { Dock = DockStyle.Bottom, Height = 60, BackColor = Color.White, BorderStyle = BorderStyle.FixedSingle };
 
-            Button btnDelete = CreateActionButton(isArabic ? "حذف" : "Delete", UITheme.DangerColor, 120);
+            Button btnDelete = CreateActionButton(isArabic ? "حذف" : "Delete", Color.FromArgb(220, 53, 69), 120);
             btnDelete.Click += async (s, e) => {
                 if (dgv.CurrentRow != null) {
                     if (MessageBox.Show(isArabic ? "هل أنت متأكد من الحذف وعكس العمليات؟" : "Confirm delete and reversal?", "Delete", MessageBoxButtons.YesNo) == DialogResult.Yes) {
@@ -86,7 +86,7 @@ namespace Supermarket.UI.Views
                 }
             };
 
-            Button btnEdit = CreateActionButton(isArabic ? "تعديل" : "Edit", UITheme.WarningColor, 120);
+            Button btnEdit = CreateActionButton(isArabic ? "تعديل" : "Edit", Color.FromArgb(255, 193, 7), 120);
             btnEdit.Click += (s, e) => {
                 if (dgv.CurrentRow != null) {
                     using (var form = new PurchaseForm((int)dgv.CurrentRow.Cells["ID"].Value, false)) {
@@ -95,7 +95,7 @@ namespace Supermarket.UI.Views
                 }
             };
 
-            Button btnPreview = CreateActionButton(isArabic ? "معاينة" : "Preview", UITheme.InfoColor, 120);
+            Button btnPreview = CreateActionButton(isArabic ? "معاينة" : "Preview", Color.FromArgb(23, 162, 184), 120);
             btnPreview.Click += (s, e) => {
                 if (dgv.CurrentRow != null) {
                     using (var form = new PurchaseForm((int)dgv.CurrentRow.Cells["ID"].Value, true)) form.ShowDialog();
