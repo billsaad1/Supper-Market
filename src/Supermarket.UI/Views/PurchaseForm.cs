@@ -74,7 +74,7 @@ namespace Supermarket.UI.Views
             dgvItems.Columns.Add(new DataGridViewTextBoxColumn { Name = "Total", HeaderText = "Total", Width = 100 });
 
             Panel footer = new Panel { Dock = DockStyle.Bottom, Height = 100, BackColor = Color.FromArgb(45, 45, 48) };
-            lblTotal = new Label { Text = "Total: 0.00 SR", ForeColor = Color.Yellow, Font = new Font("Segoe UI", 24, FontStyle.Bold), Location = new Point(20, 30), AutoSize = true };
+            lblTotal = new Label { Text = "Total: 0.00 ريال", ForeColor = Color.Yellow, Font = new Font("Segoe UI", 24, FontStyle.Bold), Location = new Point(20, 30), AutoSize = true };
             Button btnSave = new Button { Text = "SAVE INVOICE / حفظ الفاتورة", Dock = DockStyle.Right, Width = 280, BackColor = Color.FromArgb(0, 122, 204), ForeColor = Color.White, Font = new Font("Segoe UI", 18, FontStyle.Bold), FlatStyle = FlatStyle.Flat };
             btnSave.Click += BtnSave_Click;
 
@@ -107,9 +107,10 @@ namespace Supermarket.UI.Views
 
         private void UpdateTotal()
         {
+            bool isArabic = LanguageHelper.TranslationService.CurrentLanguage == Supermarket.BLL.Services.Language.Arabic;
             decimal total = 0;
             foreach (DataGridViewRow row in dgvItems.Rows) total += Convert.ToDecimal(row.Cells["Total"].Value);
-            lblTotal.Text = $"Total: {total:F2} SR";
+            lblTotal.Text = isArabic ? $"الإجمالي: {total:F2} ريال" : $"Total: {total:F2} YER";
         }
 
         private async void LoadMetadata()
@@ -127,6 +128,7 @@ namespace Supermarket.UI.Views
 
         private async void BtnSave_Click(object sender, EventArgs e)
         {
+            bool isArabic = LanguageHelper.TranslationService.CurrentLanguage == Supermarket.BLL.Services.Language.Arabic;
             if (_itemList.Count == 0) return;
             if (cbSupplier.SelectedValue == null || cbStore.SelectedValue == null)
             {
@@ -134,7 +136,11 @@ namespace Supermarket.UI.Views
                 return;
             }
 
-            decimal total = decimal.Parse(lblTotal.Text.Replace("Total: ", "").Replace(" SR", ""));
+            string totalText = lblTotal.Text;
+            if (isArabic) totalText = totalText.Replace("الإجمالي: ", "").Replace(" ريال", "");
+            else totalText = totalText.Replace("Total: ", "").Replace(" YER", "");
+
+            decimal total = decimal.Parse(totalText);
             var invoice = new PurchaseInvoice {
                 InvoiceNumber = "PUR-" + DateTime.Now.Ticks,
                 StoreID = (int)cbStore.SelectedValue,

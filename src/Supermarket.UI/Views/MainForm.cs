@@ -28,9 +28,15 @@ namespace Supermarket.UI.Views
             this.IsMdiContainer = true;
             this.Load += (s, e) => OpenForm(new DashboardView());
 
-            sidePanel = new Panel { Dock = DockStyle.Left, Width = 220, BackColor = Color.FromArgb(30, 30, 30), AutoScroll = true };
+            bool isArabic = LanguageHelper.TranslationService.CurrentLanguage == Language.Arabic;
+            sidePanel = new Panel {
+                Dock = isArabic ? DockStyle.Right : DockStyle.Left,
+                Width = 240,
+                BackColor = Color.FromArgb(33, 37, 41),
+                AutoScroll = true
+            };
 
-            headerPanel = new Panel { Dock = DockStyle.Top, Height = 60, BackColor = Color.FromArgb(45, 45, 48) };
+            headerPanel = new Panel { Dock = DockStyle.Top, Height = 65, BackColor = Color.FromArgb(52, 58, 64) };
             lblTitle = new Label { Text = "DASHBOARD", ForeColor = Color.White, Font = new Font("Segoe UI", 16, FontStyle.Bold), Location = new Point(20, 15), AutoSize = true };
 
             Button btnLang = new Button
@@ -110,29 +116,48 @@ namespace Supermarket.UI.Views
 
         private void AddSectionLabel(string text, ref int y)
         {
-            Label lbl = new Label { Text = text, ForeColor = Color.Gray, Font = new Font("Arial", 9, FontStyle.Bold), Top = y + 10, Left = 10, Width = 200, AutoSize = false };
+            bool isArabic = LanguageHelper.TranslationService.CurrentLanguage == Language.Arabic;
+            Label lbl = new Label {
+                Text = text,
+                ForeColor = Color.FromArgb(108, 117, 125),
+                Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                Top = y + 15,
+                Left = 15,
+                Width = 210,
+                AutoSize = false,
+                TextAlign = isArabic ? ContentAlignment.MiddleRight : ContentAlignment.MiddleLeft
+            };
             sidePanel.Controls.Add(lbl);
-            y += 30;
+            y += 40;
         }
 
         private void AddMenuButton(string text, ref int y, EventHandler onClick)
         {
+            bool isArabic = LanguageHelper.TranslationService.CurrentLanguage == Language.Arabic;
             Button btn = new Button
             {
                 Text = text,
                 Top = y,
-                Width = 220,
-                Height = 45,
+                Width = 240,
+                Height = 50,
                 FlatStyle = FlatStyle.Flat,
-                ForeColor = Color.Gainsboro,
-                TextAlign = ContentAlignment.MiddleLeft,
-                Padding = new Padding(15, 0, 0, 0),
-                Font = new Font("Segoe UI", 10)
+                ForeColor = Color.FromArgb(248, 249, 250),
+                TextAlign = isArabic ? ContentAlignment.MiddleRight : ContentAlignment.MiddleLeft,
+                Padding = isArabic ? new Padding(0, 0, 15, 0) : new Padding(15, 0, 0, 0),
+                Font = new Font("Segoe UI", 10.5f),
+                Cursor = Cursors.Hand
             };
             btn.FlatAppearance.BorderSize = 0;
-            btn.Click += (s, e) => { lblTitle.Text = text.ToUpper(); onClick(s, e); };
+            btn.FlatAppearance.MouseOverBackColor = Color.FromArgb(73, 80, 87);
+
+            btn.Click += (s, e) => {
+                lblTitle.Text = text.ToUpper();
+                onClick(s, e);
+                foreach(Control c in sidePanel.Controls) if(c is Button b) b.BackColor = Color.Transparent;
+                btn.BackColor = Color.FromArgb(0, 123, 255);
+            };
             sidePanel.Controls.Add(btn);
-            y += 45;
+            y += 50;
         }
 
         private void OpenForm(Form frm)

@@ -73,10 +73,11 @@ namespace Supermarket.UI.Views
 
                     if (stats != null)
                     {
-                        lblSalesValue.Text = $"{stats.TodaySales:F2} SR";
+                        bool isArabic = LanguageHelper.TranslationService.CurrentLanguage == Supermarket.BLL.Services.Language.Arabic;
+                        lblSalesValue.Text = isArabic ? $"{stats.TodaySales:F2} ريال" : $"{stats.TodaySales:F2} YER";
                         lblInvoiceCount.Text = stats.TodayCount.ToString();
-                        lblShortages.Text = $"{stats.ShortCount} Items";
-                        lblCash.Text = $"{stats.CashBalance:F2} SR";
+                        lblShortages.Text = isArabic ? $"{stats.ShortCount} أصناف" : $"{stats.ShortCount} Items";
+                        lblCash.Text = isArabic ? $"{stats.CashBalance:F2} ريال" : $"{stats.CashBalance:F2} YER";
                     }
 
                     var recent = await db.QueryAsync<dynamic>("SELECT TOP 10 InvoiceNumber, NetAmount, InvoiceDate FROM SalesInvoices ORDER BY InvoiceDate DESC");

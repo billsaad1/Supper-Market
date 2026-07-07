@@ -12,9 +12,21 @@ namespace Supermarket.BLL.Services
             PrintDocument pd = new PrintDocument();
             pd.PrintPage += (s, e) => {
                 Graphics g = e.Graphics;
-                g.DrawString("--- RECEIPT ---", new Font("Arial", 10), Brushes.Black, 10, 10);
-                g.DrawString($"Inv: {invoiceNum}", new Font("Arial", 8), Brushes.Black, 10, 30);
-                g.DrawString($"Total: {total:F2}", new Font("Arial", 10, FontStyle.Bold), Brushes.Black, 10, 50);
+                Font fTitle = new Font("Arial", 12, FontStyle.Bold);
+                Font fNormal = new Font("Arial", 10);
+
+                g.DrawString("--- RECEIPT / إيصال ---", fTitle, Brushes.Black, 20, 20);
+                g.DrawString($"Inv: {invoiceNum}", fNormal, Brushes.Black, 20, 50);
+                g.DrawString($"Cashier: {cashier}", fNormal, Brushes.Black, 20, 70);
+
+                int y = 100;
+                foreach(var item in items) {
+                    g.DrawString($"{item.Name} x{item.Qty}", fNormal, Brushes.Black, 20, y);
+                    g.DrawString($"{item.Price * item.Qty:F2} ريال", fNormal, Brushes.Black, 200, y);
+                    y += 20;
+                }
+
+                g.DrawString($"Total: {total:F2} ريال", fTitle, Brushes.Black, 20, y + 20);
             };
             try { pd.Print(); } catch { /* Ignore printer errors in demo */ }
         }

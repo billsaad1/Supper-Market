@@ -23,27 +23,8 @@ namespace Supermarket.UI
             string lastError = "";
             try
             {
-                string scriptPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "database_schema.sql");
-                if (!System.IO.File.Exists(scriptPath))
-                {
-                    scriptPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "..", "database_schema.sql");
-                }
-
-                if (System.IO.File.Exists(scriptPath))
-                {
-                    string script = System.IO.File.ReadAllText(scriptPath);
-                    Supermarket.DAL.DatabaseInitializer.InitializeDatabaseAsync(AppSettings.ConnectionString, script).GetAwaiter().GetResult();
-                    dbReady = true;
-                }
-                else
-                {
-                    // If no script, just check if we can connect
-                    using (var conn = new Microsoft.Data.SqlClient.SqlConnection(AppSettings.ConnectionString))
-                    {
-                        conn.Open();
-                        dbReady = true;
-                    }
-                }
+                Supermarket.DAL.DatabaseInitializer.InitializeDatabaseAsync(AppSettings.ConnectionString).GetAwaiter().GetResult();
+                dbReady = true;
             }
             catch (Exception ex)
             {

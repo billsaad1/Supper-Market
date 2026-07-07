@@ -22,12 +22,13 @@ namespace Supermarket.UI.Views
 
         private void SetupUI()
         {
+            bool isArabic = LanguageHelper.TranslationService.CurrentLanguage == Supermarket.BLL.Services.Language.Arabic;
             LoadShiftData();
             this.Text = "Z-Report & Shift Closing / إغلاق الوردية";
             this.Size = new Size(500, 450);
             this.StartPosition = FormStartPosition.CenterParent;
 
-            lblExpected = new Label { Text = "Expected Amount: 0.00 SR", Location = new Point(20, 30), Font = new Font("Arial", 14, FontStyle.Bold), AutoSize = true, ForeColor = Color.Blue };
+            lblExpected = new Label { Text = isArabic ? "المبلغ المتوقع: 0.00 ريال" : "Expected Amount: 0.00 YER", Location = new Point(20, 30), Font = new Font("Arial", 14, FontStyle.Bold), AutoSize = true, ForeColor = Color.Blue };
             this.Controls.Add(lblExpected);
 
             this.Controls.Add(new Label { Text = "Actual Amount / المبلغ الفعلي", Location = new Point(20, 80), AutoSize = true, Font = new Font("Arial", 12) });
@@ -48,6 +49,7 @@ namespace Supermarket.UI.Views
 
         private async void LoadShiftData()
         {
+            bool isArabic = LanguageHelper.TranslationService.CurrentLanguage == Supermarket.BLL.Services.Language.Arabic;
             string conn = AppSettings.ConnectionString;
             using (var db = new Microsoft.Data.SqlClient.SqlConnection(conn))
             {
@@ -58,7 +60,10 @@ namespace Supermarket.UI.Views
                     FROM CashierShifts s WHERE Status = 'Open' AND UserID = 1", new { userId = 1 });
 
                 if (data != null) {
-                    lblExpected.Text = $"Expected (Cash): {data.CashTotal:F2} SR\nExpected (Card): {data.CardTotal:F2} SR\nTotal: {data.ExpectedAmount:F2} SR";
+                    if (isArabic)
+                        lblExpected.Text = $"المتوقع (نقدي): {data.CashTotal:F2} ريال\nالمتوقع (بطاقة): {data.CardTotal:F2} ريال\nالإجمالي: {data.ExpectedAmount:F2} ريال";
+                    else
+                        lblExpected.Text = $"Expected (Cash): {data.CashTotal:F2} YER\nExpected (Card): {data.CardTotal:F2} YER\nTotal: {data.ExpectedAmount:F2} YER";
                 }
             }
         }

@@ -39,45 +39,80 @@ namespace Supermarket.UI.Views
             this.Size = new Size(1200, 800);
             this.WindowState = FormWindowState.Maximized;
 
-            SplitContainer mainSplit = new SplitContainer { Dock = DockStyle.Fill, SplitterDistance = 720 };
+            bool isArabic = LanguageHelper.TranslationService.CurrentLanguage == Language.Arabic;
+            SplitContainer mainSplit = new SplitContainer {
+                Dock = DockStyle.Fill,
+                SplitterDistance = 800,
+                RightToLeft = isArabic ? RightToLeft.Yes : RightToLeft.No
+            };
 
-            Panel leftPanel = new Panel { Dock = DockStyle.Fill };
-            pnlItems = new FlowLayoutPanel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = Color.WhiteSmoke };
-            txtBarcode = new TextBox { Dock = DockStyle.Top, Font = new Font("Arial", 16), PlaceholderText = "Scan Barcode..." };
+            // Left (or Right in RTL) Panel: Invoice Details
+            Panel invoicePanel = new Panel { Dock = DockStyle.Fill, Padding = new Padding(10) };
+            txtBarcode = new TextBox {
+                Dock = DockStyle.Top,
+                Font = new Font("Segoe UI", 18),
+                PlaceholderText = isArabic ? "امسح الباركود هنا..." : "Scan Barcode...",
+                Height = 50
+            };
             txtBarcode.KeyDown += async (s, e) => {
                 if (e.KeyCode == Keys.Enter && !string.IsNullOrEmpty(txtBarcode.Text)) {
                     await AddItemByBarcode(txtBarcode.Text);
                     txtBarcode.Clear();
                 }
             };
-            leftPanel.Controls.Add(pnlItems);
-            leftPanel.Controls.Add(txtBarcode);
 
-            Panel rightPanel = new Panel { Dock = DockStyle.Fill };
             dgvInvoice = new DataGridView {
                 Dock = DockStyle.Fill,
                 AllowUserToAddRows = false,
                 AutoGenerateColumns = false,
-                SelectionMode = DataGridViewSelectionMode.FullRowSelect
+                SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+                BackgroundColor = Color.White,
+                BorderStyle = BorderStyle.None,
+                RowTemplate = { Height = 35 },
+                Font = new Font("Segoe UI", 11)
             };
             dgvInvoice.Columns.Add(new DataGridViewTextBoxColumn { Name = "ItemID", Visible = false });
-            dgvInvoice.Columns.Add(new DataGridViewTextBoxColumn { Name = "Item", HeaderText = "Item", Width = 200 });
-            dgvInvoice.Columns.Add(new DataGridViewTextBoxColumn { Name = "Qty", HeaderText = "Qty", Width = 70 });
-            dgvInvoice.Columns.Add(new DataGridViewTextBoxColumn { Name = "UnitPrice", HeaderText = "Price", Width = 90 });
-            dgvInvoice.Columns.Add(new DataGridViewTextBoxColumn { Name = "Total", HeaderText = "Total", Width = 100 });
+            dgvInvoice.Columns.Add(new DataGridViewTextBoxColumn { Name = "Item", HeaderText = isArabic ? "الصنف" : "Item", Width = 300 });
+            dgvInvoice.Columns.Add(new DataGridViewTextBoxColumn { Name = "Qty", HeaderText = isArabic ? "الكمية" : "Qty", Width = 80 });
+            dgvInvoice.Columns.Add(new DataGridViewTextBoxColumn { Name = "UnitPrice", HeaderText = isArabic ? "السعر" : "Price", Width = 100 });
+            dgvInvoice.Columns.Add(new DataGridViewTextBoxColumn { Name = "Total", HeaderText = isArabic ? "الإجمالي" : "Total", Width = 120 });
 
-            Panel footer = new Panel { Dock = DockStyle.Bottom, Height = 120, BackColor = Color.FromArgb(45, 45, 48) };
-            lblTotal = new Label { Text = "TOTAL: 0.00 SR", ForeColor = Color.Yellow, Font = new Font("Segoe UI", 28, FontStyle.Bold), Location = new Point(20, 20), AutoSize = true };
-            btnPay = new Button { Text = "PAY (F5)", Dock = DockStyle.Right, Width = 200, BackColor = Color.Green, ForeColor = Color.White, Font = new Font("Arial", 20, FontStyle.Bold) };
+            Panel footer = new Panel { Dock = DockStyle.Bottom, Height = 130, BackColor = Color.FromArgb(33, 37, 41), Padding = new Padding(10) };
+            lblTotal = new Label {
+                Text = isArabic ? "الإجمالي: 0.00 ريال" : "TOTAL: 0.00 YER",
+                ForeColor = Color.FromArgb(255, 193, 7),
+                Font = new Font("Segoe UI", 32, FontStyle.Bold),
+                Dock = DockStyle.Fill,
+                TextAlign = ContentAlignment.MiddleCenter
+            };
+
+            btnPay = new Button {
+                Text = isArabic ? "دفع (F5)" : "PAY (F5)",
+                Dock = DockStyle.Right,
+                Width = 250,
+                BackColor = Color.FromArgb(40, 167, 69),
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 22, FontStyle.Bold),
+                FlatStyle = FlatStyle.Flat
+            };
+            btnPay.FlatAppearance.BorderSize = 0;
             btnPay.Click += BtnPay_Click;
+
             footer.Controls.Add(lblTotal);
             footer.Controls.Add(btnPay);
 
-            rightPanel.Controls.Add(dgvInvoice);
-            rightPanel.Controls.Add(footer);
+            invoicePanel.Controls.Add(dgvInvoice);
+            invoicePanel.Controls.Add(new Panel { Dock = DockStyle.Top, Height = 10 }); // Spacer
+            invoicePanel.Controls.Add(txtBarcode);
+            invoicePanel.Controls.Add(footer);
 
-            mainSplit.Panel1.Controls.Add(leftPanel);
-            mainSplit.Panel2.Controls.Add(rightPanel);
+            // Right (or Left in RTL) Panel: Categories/Items Grid
+            Panel selectionPanel = new Panel { Dock = DockStyle.Fill, BackColor = Color.FromArgb(248, 249, 250) };
+            pnlItems = new FlowLayoutPanel { Dock = DockStyle.Fill, AutoScroll = true, Padding = new Padding(10) };
+            selectionPanel.Controls.Add(pnlItems);
+
+            mainSplit.Panel1.Controls.Add(invoicePanel);
+            mainSplit.Panel2.Controls.Add(selectionPanel);
             this.Controls.Add(mainSplit);
 
             LanguageHelper.ApplyLanguage(this);
@@ -125,16 +160,22 @@ namespace Supermarket.UI.Views
 
         private void UpdateTotal()
         {
+            bool isArabic = LanguageHelper.TranslationService.CurrentLanguage == Language.Arabic;
             decimal total = 0;
             foreach (DataGridViewRow row in dgvInvoice.Rows) total += Convert.ToDecimal(row.Cells["Total"].Value);
-            lblTotal.Text = $"TOTAL: {total:F2} SR";
+            lblTotal.Text = isArabic ? $"الإجمالي: {total:F2} ريال" : $"TOTAL: {total:F2} YER";
         }
 
         private async void BtnPay_Click(object sender, EventArgs e)
         {
+            bool isArabic = LanguageHelper.TranslationService.CurrentLanguage == Language.Arabic;
             if (dgvInvoice.Rows.Count == 0) return;
 
-            decimal netAmount = decimal.Parse(lblTotal.Text.Replace("TOTAL: ", "").Replace(" SR", ""));
+            string totalText = lblTotal.Text;
+            if (isArabic) totalText = totalText.Replace("الإجمالي: ", "").Replace(" ريال", "");
+            else totalText = totalText.Replace("TOTAL: ", "").Replace(" YER", "");
+
+            decimal netAmount = decimal.Parse(totalText);
             PaymentForm pay = new PaymentForm(netAmount);
             if (pay.ShowDialog() == DialogResult.OK) {
                 decimal tax = netAmount * 0.15m;

@@ -30,7 +30,7 @@ namespace Supermarket.BLL.Services
             Font fLarge = new Font("Arial", 10, FontStyle.Bold);
 
             g.DrawString(_itemName, fSmall, Brushes.Black, 10, 10);
-            g.DrawString($"Price: {_price:F2} SR", fLarge, Brushes.Black, 10, 30);
+            g.DrawString($"Price: {_price:F2} ريال", fLarge, Brushes.Black, 10, 30);
 
             // Barcode representation (simplified)
             g.DrawRectangle(Pens.Black, 10, 55, 130, 25);
