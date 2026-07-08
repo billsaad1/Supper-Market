@@ -69,10 +69,10 @@ namespace Supermarket.UI.Views
 
             dgv.Columns.Add(new DataGridViewTextBoxColumn { Name = "ID", DataPropertyName = "PurchaseID", HeaderText = "ID", Width = 60 });
             dgv.Columns.Add(new DataGridViewTextBoxColumn { Name = "InvNum", DataPropertyName = "InvoiceNumber", HeaderText = isArabic ? "رقم الفاتورة" : "Invoice #", Width = 180 });
-            dgv.Columns.Add(new DataGridViewTextBoxColumn { Name = "Supplier", DataPropertyName = "SupplierName", HeaderText = isArabic ? "المورد" : "Supplier", Width = 200 });
+            dgv.Columns.Add(new DataGridViewTextBoxColumn { Name = "Supplier", DataPropertyName = "SupplierName", HeaderText = isArabic ? "المورد" : "Supplier", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill });
             dgv.Columns.Add(new DataGridViewTextBoxColumn { Name = "Store", DataPropertyName = "StoreName", HeaderText = isArabic ? "المخزن" : "Store", Width = 150 });
             dgv.Columns.Add(new DataGridViewTextBoxColumn { Name = "Date", DataPropertyName = "InvoiceDate", HeaderText = isArabic ? "التاريخ" : "Date", Width = 160 });
-            dgv.Columns.Add(new DataGridViewTextBoxColumn { Name = "Total", DataPropertyName = "TotalAmount", HeaderText = isArabic ? "الإجمالي" : "Total", Width = 120 });
+            dgv.Columns.Add(new DataGridViewTextBoxColumn { Name = "Total", DataPropertyName = "NetAmount", HeaderText = isArabic ? "الإجمالي" : "Total", Width = 120 });
 
             Panel pnlActions = new Panel { Dock = DockStyle.Bottom, Height = 60, BackColor = Color.White, BorderStyle = BorderStyle.FixedSingle };
 

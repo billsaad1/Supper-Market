@@ -93,6 +93,74 @@ namespace Supermarket.DAL
             }
         }
 
+        public async Task UpdatePurchaseInvoiceAsync(PurchaseInvoice invoice, List<PurchaseInvoiceItem> items)
+        {
+            using (IDbConnection db = new SqlConnection(_connectionString))
+            {
+                db.Open();
+                using (var transaction = db.BeginTransaction())
+                {
+                    try
+                    {
+                        // 1. Revert previous state (simplified: similar to delete but keeping header)
+                        var oldItems = await db.QueryAsync<PurchaseInvoiceItem>("SELECT * FROM PurchaseInvoiceItems WHERE PurchaseID = @id", new { id = invoice.PurchaseID }, transaction);
+                        var oldInv = await db.QueryFirstOrDefaultAsync<PurchaseInvoice>("SELECT * FROM PurchaseInvoices WHERE PurchaseID = @id", new { id = invoice.PurchaseID }, transaction);
+
+                        foreach (var item in oldItems)
+                        {
+                            await db.ExecuteAsync("UPDATE Stock SET Quantity = Quantity - @Quantity WHERE ItemID = @ItemID AND StoreID = @StoreID",
+                                new { item.ItemID, oldInv.StoreID, item.Quantity }, transaction);
+                        }
+
+                        await db.ExecuteAsync("DELETE FROM PurchaseInvoiceItems WHERE PurchaseID = @id", new { id = invoice.PurchaseID }, transaction);
+                        await db.ExecuteAsync("DELETE FROM StockMovement WHERE ReferenceID = @id AND MovementType = 'Purchase'", new { id = invoice.PurchaseID }, transaction);
+
+                        // 2. Update Header
+                        string updateSql = @"UPDATE PurchaseInvoices SET SupplierID=@SupplierID, StoreID=@StoreID, TotalAmount=@TotalAmount,
+                                             TaxAmount=@TaxAmount, NetAmount=@NetAmount, PaymentType=@PaymentType WHERE PurchaseID=@PurchaseID";
+                        await db.ExecuteAsync(updateSql, invoice, transaction);
+
+                        // 3. Re-insert items and update stock (same logic as save)
+                        foreach (var item in items)
+                        {
+                            item.PurchaseID = invoice.PurchaseID;
+                            await db.ExecuteAsync("INSERT INTO PurchaseInvoiceItems (PurchaseID, ItemID, Quantity, UnitPrice, TaxAmount, TotalAmount) VALUES (@PurchaseID, @ItemID, @Quantity, @UnitPrice, @TaxAmount, @TotalAmount)", item, transaction);
+                            await db.ExecuteAsync("INSERT INTO StockMovement (ItemID, StoreID, MovementType, Quantity, ReferenceID) VALUES (@ItemID, @StoreID, 'Purchase', @Quantity, @PurchaseID)", new { item.ItemID, invoice.StoreID, item.Quantity, invoice.PurchaseID }, transaction);
+
+                            string updateStockSql = @"
+                                IF EXISTS (SELECT 1 FROM Stock WHERE ItemID = @ItemID AND StoreID = @StoreID)
+                                    UPDATE Stock SET Quantity = Quantity + @Quantity WHERE ItemID = @ItemID AND StoreID = @StoreID
+                                ELSE
+                                    INSERT INTO Stock (ItemID, StoreID, Quantity) VALUES (@ItemID, @StoreID, @Quantity)";
+                            await db.ExecuteAsync(updateStockSql, new { item.ItemID, item.Quantity, invoice.StoreID }, transaction);
+                        }
+
+                        // 4. Update accounting (simplified: delete and recreate)
+                        string desc = "Purchase Invoice: " + oldInv.InvoiceNumber;
+                        var journalId = await db.QueryFirstOrDefaultAsync<int?>("SELECT JournalID FROM JournalEntries WHERE Description = @desc", new { desc }, transaction);
+                        if (journalId.HasValue)
+                        {
+                            await db.ExecuteAsync("DELETE FROM JournalEntryDetails WHERE JournalID = @jid", new { jid = journalId.Value }, transaction);
+
+                            var accounts = await db.QueryAsync<dynamic>("SELECT AccountID, AccountNumber FROM ChartOfAccounts WHERE AccountNumber IN ('1201', '1101', '1202', '2102')", null, transaction);
+                            int inventoryAcc = accounts.First(a => a.AccountNumber == "1201").AccountID;
+                            int cashAcc = accounts.First(a => a.AccountNumber == "1101").AccountID;
+                            int inputVatAcc = accounts.First(a => a.AccountNumber == "1202").AccountID;
+                            int supplierAcc = accounts.First(a => a.AccountNumber == "2102").AccountID;
+
+                            await db.ExecuteAsync("INSERT INTO JournalEntryDetails (JournalID, AccountID, Debit, Credit) VALUES (@jid, @acc, @amt, 0)", new { jid = journalId, acc = inventoryAcc, amt = invoice.TotalAmount }, transaction);
+                            if (invoice.TaxAmount > 0) await db.ExecuteAsync("INSERT INTO JournalEntryDetails (JournalID, AccountID, Debit, Credit) VALUES (@jid, @acc, @amt, 0)", new { jid = journalId, acc = inputVatAcc, amt = invoice.TaxAmount }, transaction);
+                            int creditAcc = invoice.PaymentType == "Credit" ? supplierAcc : cashAcc;
+                            await db.ExecuteAsync("INSERT INTO JournalEntryDetails (JournalID, AccountID, Debit, Credit) VALUES (@jid, @acc, 0, @amt)", new { jid = journalId, acc = creditAcc, amt = invoice.NetAmount }, transaction);
+                        }
+
+                        transaction.Commit();
+                    }
+                    catch { transaction.Rollback(); throw; }
+                }
+            }
+        }
+
         public async Task<int> SavePurchaseInvoiceAsync(PurchaseInvoice invoice, List<PurchaseInvoiceItem> items)
         {
             using (IDbConnection db = new SqlConnection(_connectionString))

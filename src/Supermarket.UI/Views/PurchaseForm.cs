@@ -40,52 +40,55 @@ namespace Supermarket.UI.Views
         {
             bool isArabic = LanguageHelper.TranslationService.CurrentLanguage == Supermarket.BLL.Services.Language.Arabic;
             this.Text = isArabic ? "فاتورة مشتريات" : "Purchase Invoice";
-            this.Size = new Size(1200, 800);
+            this.Size = new Size(1280, 800);
             this.BackColor = UITheme.ContentBg;
             this.StartPosition = FormStartPosition.CenterScreen;
             this.RightToLeft = isArabic ? RightToLeft.Yes : RightToLeft.No;
 
             // Header Section (Modern ActionBar)
-            Panel pnlActionBar = new Panel { Dock = DockStyle.Top, Height = 55, BackColor = Color.White, BorderStyle = BorderStyle.FixedSingle };
+            Panel pnlActionBar = new Panel { Dock = DockStyle.Top, Height = 60, BackColor = Color.White, BorderStyle = BorderStyle.FixedSingle };
 
-            Button btnSave = CreateHeaderButton(isArabic ? "حفظ الفاتورة (F5)" : "SAVE (F5)", UITheme.SuccessColor, 150);
+            Button btnSave = CreateHeaderButton(isArabic ? "حفظ الفاتورة (F5)" : "SAVE (F5)", Color.FromArgb(40, 167, 69), 160);
             btnSave.Click += BtnSave_Click;
             btnSave.Visible = !_isReadOnly;
 
-            Button btnPrint = CreateHeaderButton(isArabic ? "طباعة" : "PRINT", UITheme.InfoColor, 120);
+            Button btnPrint = CreateHeaderButton(isArabic ? "طباعة" : "PRINT", Color.FromArgb(23, 162, 184), 120);
             btnPrint.Click += BtnPrint_Click;
 
-            Button btnCancel = CreateHeaderButton(isArabic ? "إلغاء" : "CANCEL", UITheme.DangerColor, 120);
+            Button btnCancel = CreateHeaderButton(isArabic ? "إغلاق" : "CLOSE", Color.FromArgb(220, 53, 69), 120);
             btnCancel.Click += (s, e) => this.Close();
 
             pnlActionBar.Controls.AddRange(new Control[] { btnCancel, btnPrint, btnSave });
 
             // Data Entry Section
-            Panel pnlData = new Panel { Dock = DockStyle.Top, Height = 140, BackColor = Color.White, Padding = new Padding(15) };
+            Panel pnlData = new Panel { Dock = DockStyle.Top, Height = 150, BackColor = Color.White, Padding = new Padding(20) };
+            pnlData.Paint += (s, e) => { e.Graphics.DrawLine(Pens.LightGray, 0, pnlData.Height - 1, pnlData.Width, pnlData.Height - 1); };
 
-            cbSupplier = CreateTopComboBox(isArabic ? "المورد:" : "Supplier:", 20, 10);
-            cbStore = CreateTopComboBox(isArabic ? "المخزن:" : "Store:", 250, 10);
-            cbPaymentType = CreateTopComboBox(isArabic ? "طريقة الدفع:" : "Payment:", 480, 10);
+            cbSupplier = CreateTopComboBox(isArabic ? "المورد:" : "Supplier:", 20, 15);
+            cbStore = CreateTopComboBox(isArabic ? "المستودع:" : "Warehouse:", 260, 15);
+            cbPaymentType = CreateTopComboBox(isArabic ? "طريقة الدفع:" : "Payment:", 500, 15);
             cbPaymentType.Items.AddRange(new string[] { isArabic ? "نقدي" : "Cash", isArabic ? "آجل" : "Credit" });
             cbPaymentType.SelectedIndex = 0;
 
-            Panel pnlEntry = new Panel { Top = 70, Left = 15, Width = 1100, Height = 70 };
-            txtBarcode = CreateEntryField(isArabic ? "الباركود:" : "Barcode:", 0, 0, 220, pnlEntry);
-            txtQty = CreateEntryField(isArabic ? "الكمية:" : "Qty:", 230, 0, 80, pnlEntry);
-            txtPrice = CreateEntryField(isArabic ? "سعر الشراء:" : "Price:", 320, 0, 100, pnlEntry);
+            Panel pnlEntry = new Panel { Top = 80, Left = 20, Width = 1200, Height = 60 };
+            txtBarcode = CreateEntryField(isArabic ? "باركود الصنف:" : "Item Barcode:", 0, 0, 250, pnlEntry);
+            txtQty = CreateEntryField(isArabic ? "الكمية:" : "Qty:", 270, 0, 100, pnlEntry);
+            txtPrice = CreateEntryField(isArabic ? "سعر التكلفة:" : "Unit Cost:", 390, 0, 120, pnlEntry);
 
             Button btnAdd = new Button {
-                Text = isArabic ? "إضافة" : "ADD",
-                Location = new Point(430, 20),
-                Width = 100, Height = 35,
+                Text = isArabic ? "+ إضافة صنف" : "+ ADD ITEM",
+                Location = new Point(530, 18),
+                Width = 140, Height = 35,
                 BackColor = UITheme.PrimaryColor,
                 ForeColor = Color.White,
-                FlatStyle = FlatStyle.Flat
+                FlatStyle = FlatStyle.Flat,
+                Font = new Font("Segoe UI", 9, FontStyle.Bold)
             };
+            btnAdd.FlatAppearance.BorderSize = 0;
             btnAdd.Click += BtnAdd_Click;
             pnlEntry.Controls.Add(btnAdd);
 
-            pnlData.Controls.AddRange(new Control[] { pnlEntry, cbSupplier.Parent, cbStore.Parent });
+            pnlData.Controls.AddRange(new Control[] { pnlEntry, cbSupplier.Parent, cbStore.Parent, cbPaymentType.Parent });
 
             // Main Grid
             dgvItems = new DataGridView { Dock = DockStyle.Fill, AllowUserToAddRows = false };
@@ -222,6 +225,7 @@ namespace Supermarket.UI.Views
         private async void BtnSave_Click(object sender, EventArgs e)
         {
             if (dgvItems.Rows.Count == 0) return;
+            if (cbSupplier.SelectedValue == null || cbStore.SelectedValue == null) return;
 
             decimal subtotal = dgvItems.Rows.Cast<DataGridViewRow>().Sum(r => Convert.ToDecimal(r.Cells["Total"].Value));
             decimal tax = subtotal * 0.15m;
@@ -236,7 +240,8 @@ namespace Supermarket.UI.Views
             }).ToList();
 
             var inv = new PurchaseInvoice {
-                InvoiceNumber = "PUR-" + DateTime.Now.Ticks,
+                PurchaseID = _existingId ?? 0,
+                InvoiceNumber = _existingId.HasValue ? null : "PUR-" + DateTime.Now.Ticks, // Repo handles number for existing
                 StoreID = (int)cbStore.SelectedValue,
                 SupplierID = (int)cbSupplier.SelectedValue,
                 TotalAmount = subtotal,
@@ -246,7 +251,15 @@ namespace Supermarket.UI.Views
                 PaymentType = cbPaymentType.SelectedIndex == 1 ? "Credit" : "Cash"
             };
 
-            await _purchaseRepo.SavePurchaseInvoiceAsync(inv, items);
+            if (_existingId.HasValue)
+            {
+                await _purchaseRepo.UpdatePurchaseInvoiceAsync(inv, items);
+            }
+            else
+            {
+                await _purchaseRepo.SavePurchaseInvoiceAsync(inv, items);
+            }
+
             MessageBox.Show(LanguageHelper.TranslationService.CurrentLanguage == Language.Arabic ? "تم حفظ الفاتورة بنجاح" : "Invoice saved successfully!");
             this.DialogResult = DialogResult.OK;
             this.Close();
