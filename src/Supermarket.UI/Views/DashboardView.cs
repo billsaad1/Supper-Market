@@ -25,8 +25,9 @@ namespace Supermarket.UI.Views
             this.Text = "Dashboard";
             this.BackColor = UITheme.ContentBg;
             bool isArabic = LanguageHelper.TranslationService.CurrentLanguage == Supermarket.BLL.Services.Language.Arabic;
+            this.RightToLeft = isArabic ? RightToLeft.Yes : RightToLeft.No;
 
-            TableLayoutPanel layout = new TableLayoutPanel { Dock = DockStyle.Top, Height = 160, ColumnCount = 4, RowCount = 1, Padding = new Padding(10) };
+            TableLayoutPanel layout = new TableLayoutPanel { Dock = DockStyle.Top, Height = 160, ColumnCount = 4, RowCount = 1, Padding = new Padding(10), RightToLeft = isArabic ? RightToLeft.Yes : RightToLeft.No };
             layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25f));
             layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25f));
             layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25f));

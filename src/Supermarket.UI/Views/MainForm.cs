@@ -48,35 +48,40 @@ namespace Supermarket.UI.Views
                 Dock = isArabic ? DockStyle.Right : DockStyle.Left,
                 Width = 240,
                 BackColor = UITheme.SidebarBg,
-                AutoScroll = true
+                AutoScroll = true,
+                RightToLeft = isArabic ? RightToLeft.Yes : RightToLeft.No
             };
 
             headerPanel = new Panel {
                 Dock = DockStyle.Top,
                 Height = 60,
                 BackColor = Color.White,
-                BorderStyle = BorderStyle.FixedSingle
+                BorderStyle = BorderStyle.FixedSingle,
+                RightToLeft = isArabic ? RightToLeft.Yes : RightToLeft.No
             };
 
             lblTitle = new Label {
                 Text = isArabic ? "لوحة التحكم" : "DASHBOARD",
                 ForeColor = UITheme.TextPrimary,
                 Font = new Font("Segoe UI", 14, FontStyle.Bold),
-                Location = new Point(20, 15),
-                AutoSize = true
+                Dock = isArabic ? DockStyle.Right : DockStyle.Left,
+                AutoSize = false,
+                Width = 400,
+                TextAlign = isArabic ? ContentAlignment.MiddleRight : ContentAlignment.MiddleLeft,
+                Padding = new Padding(20, 0, 20, 0)
             };
 
             // Modern Search/Info bar in header (placeholder)
-            Panel userInfoPnl = new Panel { Dock = isArabic ? DockStyle.Left : DockStyle.Right, Width = 300 };
+            Panel userInfoPnl = new Panel { Dock = isArabic ? DockStyle.Left : DockStyle.Right, Width = 350 };
+
             Label lblUser = new Label {
-                Text = $"Welcome, Admin",
+                Text = isArabic ? "مرحباً، المدير العام" : "Welcome, Admin",
                 ForeColor = UITheme.TextSecondary,
                 Font = UITheme.MainFont,
                 Dock = DockStyle.Fill,
-                TextAlign = ContentAlignment.MiddleRight,
-                Padding = new Padding(0, 0, 20, 0)
+                TextAlign = isArabic ? ContentAlignment.MiddleLeft : ContentAlignment.MiddleRight,
+                Padding = new Padding(10, 0, 10, 0)
             };
-            userInfoPnl.Controls.Add(lblUser);
 
             Button btnLang = new Button
             {
@@ -84,12 +89,14 @@ namespace Supermarket.UI.Views
                 ForeColor = UITheme.PrimaryColor,
                 FlatStyle = FlatStyle.Flat,
                 Width = 80,
-                Height = 30,
-                Top = 15,
-                Left = isArabic ? 20 : 1100,
-                Anchor = isArabic ? AnchorStyles.Top | AnchorStyles.Left : AnchorStyles.Top | AnchorStyles.Right,
-                Font = new Font("Segoe UI", 9, FontStyle.Bold)
+                Height = 32,
+                Dock = isArabic ? DockStyle.Left : DockStyle.Right,
+                Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                Margin = new Padding(10, 14, 10, 0)
             };
+
+            userInfoPnl.Controls.Add(lblUser);
+            userInfoPnl.Controls.Add(btnLang);
             btnLang.FlatAppearance.BorderColor = UITheme.PrimaryColor;
             btnLang.Click += (s, e) => {
                 LanguageHelper.TranslationService.CurrentLanguage =
@@ -102,13 +109,19 @@ namespace Supermarket.UI.Views
             headerPanel.Controls.Add(userInfoPnl);
 
             // Logo Section
-            Panel logoPnl = new Panel { Dock = DockStyle.Top, Height = 80, BackColor = Color.FromArgb(45, 50, 55) };
+            Panel logoPnl = new Panel {
+                Dock = DockStyle.Top,
+                Height = 80,
+                BackColor = Color.FromArgb(35, 35, 38),
+                RightToLeft = isArabic ? RightToLeft.Yes : RightToLeft.No
+            };
             Label lblLogo = new Label {
                 Text = "BCREATIVE",
                 ForeColor = Color.White,
-                Font = new Font("Segoe UI", 18, FontStyle.Bold),
+                Font = new Font("Segoe UI", 22, FontStyle.Bold),
                 Dock = DockStyle.Fill,
-                TextAlign = ContentAlignment.MiddleCenter
+                TextAlign = isArabic ? ContentAlignment.MiddleRight : ContentAlignment.MiddleLeft,
+                Padding = isArabic ? new Padding(0, 0, 25, 0) : new Padding(25, 0, 0, 0)
             };
             logoPnl.Controls.Add(lblLogo);
             sidePanel.Controls.Add(logoPnl);
@@ -173,15 +186,15 @@ namespace Supermarket.UI.Views
             bool isArabic = LanguageHelper.TranslationService.CurrentLanguage == Language.Arabic;
             Label lbl = new Label {
                 Text = text,
-                ForeColor = Color.FromArgb(108, 117, 125),
-                Font = new Font("Segoe UI", 8, FontStyle.Regular),
+                ForeColor = Color.FromArgb(140, 140, 145),
+                Font = new Font("Segoe UI", 8, FontStyle.Bold),
                 Top = y + 10,
                 Left = 0,
                 Width = 240,
                 Height = 30,
                 AutoSize = false,
                 TextAlign = isArabic ? ContentAlignment.MiddleRight : ContentAlignment.MiddleLeft,
-                Padding = isArabic ? new Padding(0, 0, 10, 0) : new Padding(10, 0, 0, 0)
+                Padding = isArabic ? new Padding(0, 0, 20, 0) : new Padding(20, 0, 0, 0)
             };
             sidePanel.Controls.Add(lbl);
             y += 35;
@@ -197,13 +210,12 @@ namespace Supermarket.UI.Views
                 Width = 240,
                 Height = 40,
                 FlatStyle = FlatStyle.Flat,
-                ForeColor = Color.FromArgb(200, 200, 200),
-                TextAlign = ContentAlignment.MiddleLeft,
-                Padding = isArabic ? new Padding(0, 0, 15, 0) : new Padding(15, 0, 0, 0),
+                ForeColor = Color.FromArgb(200, 200, 203),
+                TextAlign = isArabic ? ContentAlignment.MiddleRight : ContentAlignment.MiddleLeft,
+                Padding = isArabic ? new Padding(0, 0, 25, 0) : new Padding(25, 0, 0, 0),
                 Font = new Font("Segoe UI", 9.5f),
                 Cursor = Cursors.Hand
             };
-            if (isArabic) btn.TextAlign = ContentAlignment.MiddleRight;
 
             btn.FlatAppearance.BorderSize = 0;
             btn.FlatAppearance.MouseOverBackColor = Color.FromArgb(60, 65, 70);
@@ -214,7 +226,7 @@ namespace Supermarket.UI.Views
                 foreach(Control c in sidePanel.Controls) {
                     if(c is Button b) {
                         b.BackColor = Color.Transparent;
-                        b.ForeColor = Color.FromArgb(200, 200, 200);
+                        b.ForeColor = Color.FromArgb(200, 200, 203);
                         b.Font = new Font("Segoe UI", 9.5f);
                     }
                 }

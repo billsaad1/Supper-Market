@@ -28,13 +28,26 @@ namespace Supermarket.UI.Views
 
         private void SetupUI()
         {
-            this.Text = "Sales Returns / مرتجعات المبيعات";
-            this.Size = new Size(1000, 700);
+            bool isArabic = LanguageHelper.TranslationService.CurrentLanguage == Supermarket.BLL.Services.Language.Arabic;
+            this.Text = isArabic ? "مرتجع مبيعات" : "Sales Returns";
+            this.Size = new Size(1100, 750);
+            this.BackColor = UITheme.ContentBg;
+            this.RightToLeft = isArabic ? RightToLeft.Yes : RightToLeft.No;
 
-            Panel top = new Panel { Dock = DockStyle.Top, Height = 80, BackColor = Color.WhiteSmoke };
-            top.Controls.Add(new Label { Text = "Invoice # / رقم الفاتورة", Location = new Point(20, 30), AutoSize = true });
-            txtInvoiceNum = new TextBox { Location = new Point(180, 28), Width = 200, Font = new Font("Arial", 12) };
-            Button btnSearch = new Button { Text = "Search / بحث", Location = new Point(400, 25), Width = 120, Height = 35, BackColor = Color.Teal, ForeColor = Color.White };
+            Panel top = new Panel { Dock = DockStyle.Top, Height = 100, BackColor = Color.White, Padding = new Padding(20), BorderStyle = BorderStyle.FixedSingle };
+            Label lblInfo = new Label { Text = isArabic ? "رقم الفاتورة الأصلية:" : "Original Invoice #:", Location = new Point(20, 20), AutoSize = true, Font = UITheme.MainFont };
+            txtInvoiceNum = new TextBox { Location = new Point(20, 45), Width = 300, Font = new Font("Segoe UI", 12) };
+
+            Button btnSearch = new Button {
+                Text = isArabic ? "بحث وتحميل" : "Search & Load",
+                Location = new Point(330, 43),
+                Width = 150, Height = 32,
+                BackColor = UITheme.PrimaryColor,
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                Font = new Font("Segoe UI", 9, FontStyle.Bold)
+            };
+            btnSearch.FlatAppearance.BorderSize = 0;
             btnSearch.Click += async (s, e) => {
                 dgvItems.Rows.Clear();
                 _currentSalesId = 0;
@@ -45,7 +58,7 @@ namespace Supermarket.UI.Views
                         "SELECT SalesID FROM SalesInvoices WHERE InvoiceNumber = @inv", new { inv = txtInvoiceNum.Text });
 
                     if (invoice == null) {
-                        MessageBox.Show("Invoice not found / الفاتورة غير موجودة");
+                        MessageBox.Show(isArabic ? "الفاتورة غير موجودة" : "Invoice not found");
                         return;
                     }
                     _currentSalesId = invoice.SalesID;
@@ -59,32 +72,48 @@ namespace Supermarket.UI.Views
                         dgvItems.Rows.Add(item.ItemID, item.ItemName, item.Quantity, 0, item.UnitPrice, 0);
                     }
                 }
-                MessageBox.Show("Invoice Found and Items Loaded / تم العثور على الفاتورة وتحميل الأصناف");
             };
 
-            top.Controls.AddRange(new Control[] { txtInvoiceNum, btnSearch });
+            top.Controls.AddRange(new Control[] { lblInfo, txtInvoiceNum, btnSearch });
 
             dgvItems = new DataGridView { Dock = DockStyle.Fill, AllowUserToAddRows = false, AutoGenerateColumns = false };
+            UITheme.ApplyModernStyle(dgvItems);
             dgvItems.Columns.Add(new DataGridViewTextBoxColumn { Name = "ItemID", Visible = false });
-            dgvItems.Columns.Add(new DataGridViewTextBoxColumn { Name = "Name", HeaderText = "Item", ReadOnly = true });
-            dgvItems.Columns.Add(new DataGridViewTextBoxColumn { Name = "Qty", HeaderText = "Original Qty", ReadOnly = true });
-            dgvItems.Columns.Add(new DataGridViewTextBoxColumn { Name = "RetQty", HeaderText = "Return Qty" });
-            dgvItems.Columns.Add(new DataGridViewTextBoxColumn { Name = "Price", HeaderText = "Price", ReadOnly = true });
-            dgvItems.Columns.Add(new DataGridViewTextBoxColumn { Name = "Total", HeaderText = "Refund Total", ReadOnly = true });
+            dgvItems.Columns.Add(new DataGridViewTextBoxColumn { Name = "Name", HeaderText = isArabic ? "الصنف" : "Item", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill, ReadOnly = true });
+            dgvItems.Columns.Add(new DataGridViewTextBoxColumn { Name = "Qty", HeaderText = isArabic ? "الكمية المباعة" : "Sold Qty", Width = 120, ReadOnly = true });
+            dgvItems.Columns.Add(new DataGridViewTextBoxColumn { Name = "RetQty", HeaderText = isArabic ? "الكمية المرتجعة" : "Return Qty", Width = 120 });
+            dgvItems.Columns.Add(new DataGridViewTextBoxColumn { Name = "Price", HeaderText = isArabic ? "السعر" : "Price", Width = 120, ReadOnly = true });
+            dgvItems.Columns.Add(new DataGridViewTextBoxColumn { Name = "Total", HeaderText = isArabic ? "الإجمالي" : "Total", Width = 150, ReadOnly = true });
 
             dgvItems.CellValueChanged += (s, e) => {
-                if (e.ColumnIndex == dgvItems.Columns["RetQty"].Index) {
+                if (e.ColumnIndex == dgvItems.Columns["RetQty"].Index && e.RowIndex >= 0) {
                     var row = dgvItems.Rows[e.RowIndex];
-                    decimal qty = Convert.ToDecimal(row.Cells["RetQty"].Value);
-                    decimal price = Convert.ToDecimal(row.Cells["Price"].Value);
-                    row.Cells["Total"].Value = qty * price;
+                    if (decimal.TryParse(row.Cells["RetQty"].Value?.ToString(), out decimal qty)) {
+                        decimal soldQty = Convert.ToDecimal(row.Cells["Qty"].Value);
+                        if (qty > soldQty) {
+                            MessageBox.Show(isArabic ? "الكمية المرتجعة لا يمكن أن تتجاوز الكمية المباعة" : "Return Qty cannot exceed Sold Qty");
+                            row.Cells["RetQty"].Value = 0;
+                            qty = 0;
+                        }
+                        decimal price = Convert.ToDecimal(row.Cells["Price"].Value);
+                        row.Cells["Total"].Value = qty * price;
+                    }
                 }
             };
 
-            Button btnSave = new Button { Text = "PROCESS RETURN / إتمام المرتجع", Dock = DockStyle.Bottom, Height = 60, BackColor = Color.Maroon, ForeColor = Color.White, Font = new Font("Arial", 16, FontStyle.Bold) };
+            Panel pnlFooter = new Panel { Dock = DockStyle.Bottom, Height = 80, BackColor = Color.White, BorderStyle = BorderStyle.FixedSingle, Padding = new Padding(10) };
+            Button btnSave = new Button {
+                Text = isArabic ? "إتمام عملية المرتجع" : "PROCESS RETURN",
+                Dock = DockStyle.Fill,
+                BackColor = Color.FromArgb(220, 53, 69),
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 14, FontStyle.Bold),
+                FlatStyle = FlatStyle.Flat
+            };
+            btnSave.FlatAppearance.BorderSize = 0;
             btnSave.Click += async (s, e) => {
                 if (_currentSalesId == 0) {
-                    MessageBox.Show("Please search for a valid invoice first / يرجى البحث عن فاتورة صحيحة أولاً");
+                    MessageBox.Show(isArabic ? "يرجى البحث عن فاتورة أولاً" : "Please search for an invoice first");
                     return;
                 }
 
@@ -98,14 +127,15 @@ namespace Supermarket.UI.Views
 
                 if (itemsToReturn.Count > 0) {
                     await _returnRepo.ProcessSalesReturnAsync(_currentSalesId, itemsToReturn, 1);
-                    MessageBox.Show("Return Processed Successfully! / تم إتمام المرتجع وتحديث المخزن والقيود");
+                    MessageBox.Show(isArabic ? "تم إتمام المرتجع بنجاح" : "Return Processed Successfully!");
                     this.Close();
                 }
             };
+            pnlFooter.Controls.Add(btnSave);
 
             this.Controls.Add(dgvItems);
             this.Controls.Add(top);
-            this.Controls.Add(btnSave);
+            this.Controls.Add(pnlFooter);
 
             LanguageHelper.ApplyLanguage(this);
         }

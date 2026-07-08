@@ -23,27 +23,66 @@ namespace Supermarket.UI.Views
         private void SetupUI()
         {
             bool isArabic = LanguageHelper.TranslationService.CurrentLanguage == Supermarket.BLL.Services.Language.Arabic;
-            LoadShiftData();
-            this.Text = "Z-Report & Shift Closing / إغلاق الوردية";
-            this.Size = new Size(500, 450);
+            this.Text = isArabic ? "إغلاق الوردية" : "Shift Closing";
+            this.Size = new Size(600, 500);
             this.StartPosition = FormStartPosition.CenterParent;
+            this.BackColor = UITheme.ContentBg;
+            this.RightToLeft = isArabic ? RightToLeft.Yes : RightToLeft.No;
 
-            lblExpected = new Label { Text = isArabic ? "المبلغ المتوقع: 0.00 ريال" : "Expected Amount: 0.00 YER", Location = new Point(20, 30), Font = new Font("Arial", 14, FontStyle.Bold), AutoSize = true, ForeColor = Color.Blue };
-            this.Controls.Add(lblExpected);
-
-            this.Controls.Add(new Label { Text = "Actual Amount / المبلغ الفعلي", Location = new Point(20, 80), AutoSize = true, Font = new Font("Arial", 12) });
-            txtActual = new TextBox { Location = new Point(200, 78), Width = 200, Font = new Font("Arial", 14) };
-            this.Controls.Add(txtActual);
-
-            Button btnClose = new Button { Text = "CLOSE SHIFT / إغلاق الوردية", Location = new Point(20, 200), Width = 440, Height = 60, BackColor = Color.Red, ForeColor = Color.White, Font = new Font("Arial", 16, FontStyle.Bold) };
-            btnClose.Click += async (s, e) => {
-                decimal actual = decimal.Parse(txtActual.Text);
-                await _shiftRepo.CloseShiftAsync(1, actual, 1); // Dummy IDs
-                MessageBox.Show("Shift Closed and Z-Report Printed / تم إغلاق الوردية وطباعة التقرير");
-                this.Close();
+            Panel pnlCard = new Panel {
+                Width = 540, Height = 400,
+                Location = new Point(20, 20),
+                BackColor = Color.White,
+                Padding = new Padding(25)
             };
-            this.Controls.Add(btnClose);
 
+            lblExpected = new Label {
+                Text = isArabic ? "المبلغ المتوقع: 0.00 ريال" : "Expected Amount: 0.00 YER",
+                Location = new Point(25, 25),
+                Font = new Font("Segoe UI", 12, FontStyle.Bold),
+                AutoSize = true,
+                ForeColor = UITheme.PrimaryColor
+            };
+            pnlCard.Controls.Add(lblExpected);
+
+            Label lblActualPrompt = new Label {
+                Text = isArabic ? "المبلغ الفعلي في الدرج:" : "Actual Amount in Drawer:",
+                Location = new Point(25, 120),
+                AutoSize = true,
+                Font = UITheme.MainFont
+            };
+            pnlCard.Controls.Add(lblActualPrompt);
+
+            txtActual = new TextBox {
+                Location = new Point(25, 150),
+                Width = 490,
+                Font = new Font("Segoe UI", 24, FontStyle.Bold),
+                TextAlign = HorizontalAlignment.Center
+            };
+            pnlCard.Controls.Add(txtActual);
+
+            Button btnClose = new Button {
+                Text = isArabic ? "إغلاق الوردية وطباعة التقرير" : "CLOSE SHIFT & PRINT",
+                Location = new Point(25, 250),
+                Width = 490, Height = 70,
+                BackColor = Color.FromArgb(220, 53, 69),
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 16, FontStyle.Bold),
+                FlatStyle = FlatStyle.Flat
+            };
+            btnClose.FlatAppearance.BorderSize = 0;
+            btnClose.Click += async (s, e) => {
+                if (decimal.TryParse(txtActual.Text, out decimal actual)) {
+                    await _shiftRepo.CloseShiftAsync(1, actual, 1); // Using dummy ID 1 for current shift/user
+                    MessageBox.Show(isArabic ? "تم إغلاق الوردية بنجاح" : "Shift Closed Successfully!");
+                    this.Close();
+                }
+            };
+            pnlCard.Controls.Add(btnClose);
+
+            this.Controls.Add(pnlCard);
+
+            LoadShiftData();
             LanguageHelper.ApplyLanguage(this);
         }
 
