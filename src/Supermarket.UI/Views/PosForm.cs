@@ -20,6 +20,7 @@ namespace Supermarket.UI.Views
         private BusinessFlowService _flowService;
         private MasterDataRepository _itemRepo;
         private ContactRepository _contactRepo;
+        private PromotionEngine _promoEngine;
         private ComboBox cbCustomer;
         private decimal _totalDiscount = 0;
 
@@ -30,6 +31,7 @@ namespace Supermarket.UI.Views
             _flowService = new BusinessFlowService(conn);
             _itemRepo = new MasterDataRepository(conn);
             _contactRepo = new ContactRepository(conn);
+            _promoEngine = new PromotionEngine();
             SetupUI();
             LoadMetadata();
         }
@@ -244,21 +246,38 @@ namespace Supermarket.UI.Views
         private void DisplayItemButtons(IEnumerable<Models.Entities.Item> items)
         {
             pnlItems.Controls.Clear();
+            bool isArabic = LanguageHelper.TranslationService.CurrentLanguage == Language.Arabic;
             foreach (var item in items)
             {
+                Panel pItem = new Panel { Width = 130, Height = 130, BackColor = Color.White, Margin = new Padding(5) };
+                pItem.Paint += (s, e) => { e.Graphics.DrawRectangle(new Pen(Color.FromArgb(230, 230, 230), 1), 0, 0, pItem.Width-1, pItem.Height-1); };
+
+                Label lblPrice = new Label {
+                    Text = item.SalePrice.ToString("F2"),
+                    Dock = DockStyle.Top,
+                    Height = 25,
+                    BackColor = UITheme.PrimaryColor,
+                    ForeColor = Color.White,
+                    TextAlign = ContentAlignment.MiddleCenter,
+                    Font = new Font("Segoe UI", 9, FontStyle.Bold)
+                };
+
                 Button btn = new Button {
-                    Text = $"{item.ItemName}\n{item.SalePrice:F2}",
-                    Width = 120,
-                    Height = 100,
+                    Text = item.ItemName,
+                    Dock = DockStyle.Fill,
+                    FlatStyle = FlatStyle.Flat,
                     BackColor = Color.White,
                     Tag = item,
-                    Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                    Font = new Font("Segoe UI", 9, FontStyle.Regular),
                     Cursor = Cursors.Hand,
-                    Margin = new Padding(3)
+                    TextAlign = ContentAlignment.MiddleCenter
                 };
-                btn.FlatAppearance.BorderColor = UITheme.PrimaryColor;
+                btn.FlatAppearance.BorderSize = 0;
                 btn.Click += (s, e) => { AddItemToInvoice((Models.Entities.Item)btn.Tag); txtBarcode.Focus(); };
-                pnlItems.Controls.Add(btn);
+
+                pItem.Controls.Add(btn);
+                pItem.Controls.Add(lblPrice);
+                pnlItems.Controls.Add(pItem);
             }
         }
 
@@ -275,7 +294,11 @@ namespace Supermarket.UI.Views
                 if ((int)row.Cells["ItemID"].Value == item.ItemID) {
                     decimal newQty = Convert.ToDecimal(row.Cells["Qty"].Value) + qty;
                     row.Cells["Qty"].Value = newQty;
-                    row.Cells["Total"].Value = newQty * (decimal)row.Cells["UnitPrice"].Value;
+
+                    // Apply automatic discounts from engine
+                    decimal promoDiscount = _promoEngine.CalculateDiscount(item.ItemID, newQty, item.SalePrice);
+                    row.Cells["Total"].Value = (newQty * (decimal)row.Cells["UnitPrice"].Value) - promoDiscount;
+
                     UpdateTotal();
                     return;
                 }
@@ -302,9 +325,23 @@ namespace Supermarket.UI.Views
 
         private async System.Threading.Tasks.Task AddItemByBarcode(string barcode)
         {
-            var item = await _itemRepo.GetItemByBarcodeAsync(barcode);
-            if (item != null) AddItemToInvoice(item);
-            else MessageBox.Show(LanguageHelper.TranslationService.CurrentLanguage == Supermarket.BLL.Services.Language.Arabic ? "غير موجود" : "Not Found");
+            // 1. Check for Scale Barcode
+            var scaleData = ScaleBarcodeParser.Parse(barcode);
+            if (scaleData.IsScaleItem)
+            {
+                var items = await _itemRepo.GetAllItemsAsync();
+                var item = items.FirstOrDefault(i => (i.Barcode ?? "").EndsWith(scaleData.ItemCode));
+                if (item != null)
+                {
+                    AddItemToInvoice(item, scaleData.Weight);
+                    return;
+                }
+            }
+
+            // 2. Standard Barcode
+            var standardItem = await _itemRepo.GetItemByBarcodeAsync(barcode);
+            if (standardItem != null) AddItemToInvoice(standardItem);
+            else MessageBox.Show(LanguageHelper.TranslationService.CurrentLanguage == Supermarket.BLL.Services.Language.Arabic ? "الصنف غير موجود" : "Item Not Found");
         }
 
         private void BtnDiscount_Click(object sender, EventArgs e)
@@ -354,8 +391,9 @@ namespace Supermarket.UI.Views
             decimal tax = subtotal * 0.15m;
             decimal grandTotal = (subtotal + tax) - _totalDiscount;
 
+            string invNum = "POS-" + DateTime.Now.Ticks;
             var invoice = new SalesInvoice {
-                InvoiceNumber = "POS-" + DateTime.Now.Ticks,
+                InvoiceNumber = invNum,
                 StoreID = 1, NetAmount = subtotal, TaxAmount = tax, DiscountAmount = _totalDiscount,
                 TotalAmount = grandTotal, PaymentType = method ?? "Cash",
                 CustomerID = (cbCustomer.SelectedValue != null && (int)cbCustomer.SelectedValue > 0) ? (int)cbCustomer.SelectedValue : null,
@@ -370,6 +408,18 @@ namespace Supermarket.UI.Views
             }).ToList();
 
             await _flowService.RecordSaleAsync(invoice, items);
+
+            // Print Receipt with ZATCA QR
+            var printer = new ReceiptPrinter();
+            var receiptItems = dgvInvoice.Rows.Cast<DataGridViewRow>().Select(r => new ReceiptItem {
+                Name = r.Cells["Item"].Value.ToString(),
+                Qty = Convert.ToDecimal(r.Cells["Qty"].Value),
+                Price = Convert.ToDecimal(r.Cells["UnitPrice"].Value)
+            }).ToList();
+
+            string qr = ZatcaHelper.GenerateQrCode("Supermarket", "1234567890", DateTime.Now, grandTotal, tax);
+            printer.PrintReceipt(invNum, "Admin", receiptItems, subtotal, tax, grandTotal, qr);
+
             MessageBox.Show(LanguageHelper.TranslationService.CurrentLanguage == Language.Arabic ? "تم حفظ العملية بنجاح" : "Sale saved successfully!");
             ResetInvoice();
         }
