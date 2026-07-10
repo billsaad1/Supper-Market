@@ -35,7 +35,9 @@ namespace Supermarket.Models.Entities
         public string Barcode { get; set; }
         public string ItemName { get; set; }
         public int? CategoryID { get; set; }
-        public string Unit { get; set; }
+        public string Unit { get; set; } // Base Unit (e.g., PCS)
+        public string PurchaseUnit { get; set; } // e.g., Box
+        public decimal ConversionFactor { get; set; } // 1 Box = 12 PCS
         public decimal CostPrice { get; set; }
         public decimal SalePrice { get; set; }
         public decimal TaxRate { get; set; }
@@ -72,6 +74,7 @@ namespace Supermarket.Models.Entities
         public int PurchaseID { get; set; }
         public int ItemID { get; set; }
         public decimal Quantity { get; set; }
+        public string SelectedUnit { get; set; } // Box or PCS
         public decimal UnitPrice { get; set; }
         public decimal DiscountRate { get; set; }
         public decimal DiscountAmount { get; set; }
@@ -111,6 +114,7 @@ namespace Supermarket.Models.Entities
         public string InvoiceNumber { get; set; }
         public int? CustomerID { get; set; }
         public int StoreID { get; set; }
+        public DateTime InvoiceDate { get; set; }
         public decimal TotalAmount { get; set; }
         public decimal TaxAmount { get; set; }
         public decimal DiscountAmount { get; set; }
@@ -131,5 +135,17 @@ namespace Supermarket.Models.Entities
         public decimal UnitPrice { get; set; }
         public decimal TaxAmount { get; set; }
         public decimal TotalAmount { get; set; }
+    }
+
+    public class Voucher
+    {
+        public int VoucherID { get; set; }
+        public string VoucherType { get; set; } // Receipt, Payment
+        public DateTime VoucherDate { get; set; }
+        public decimal Amount { get; set; }
+        public int AccountID { get; set; }
+        public string PaymentType { get; set; } // Cash, Bank
+        public string Notes { get; set; }
+        public int CreatedBy { get; set; }
     }
 }

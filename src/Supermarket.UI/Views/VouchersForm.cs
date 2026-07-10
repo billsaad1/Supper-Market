@@ -3,84 +3,98 @@ using System;
 using System.Drawing;
 using System.Windows.Forms;
 using Supermarket.DAL;
-using Dapper;
+using Supermarket.Models.Entities;
+using Supermarket.BLL.Services;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Supermarket.UI.Views
 {
     public partial class VouchersForm : Form
     {
-        private IntegratedAccountingRepository _accRepo;
+        private ComboBox cbType, cbAccount, cbPaymentMethod;
+        private TextBox txtAmount, txtNotes;
+        private DataGridView dgvRecent;
+        private AccountingRepository _accRepo;
+        private AccountRepository _acctListRepo;
 
         public VouchersForm()
         {
             InitializeComponent();
-            _accRepo = new IntegratedAccountingRepository(AppSettings.ConnectionString);
+            _accRepo = new AccountingRepository(AppSettings.ConnectionString);
+            _acctListRepo = new AccountRepository(AppSettings.ConnectionString);
             SetupUI();
+            LoadAccounts();
         }
 
         private void SetupUI()
         {
-            this.Text = "Accounting Vouchers / السندات المحاسبية";
-            this.Size = new Size(800, 500);
+            bool isArabic = LanguageHelper.TranslationService.CurrentLanguage == Language.Arabic;
+            this.Text = isArabic ? "سندات القبض والصرف" : "Vouchers (Receipt/Payment)";
+            this.Size = new Size(900, 600);
+            this.BackColor = UITheme.ContentBg;
+            this.RightToLeft = isArabic ? RightToLeft.Yes : RightToLeft.No;
 
-            TabControl tabs = new TabControl { Dock = DockStyle.Fill };
+            Panel pnlEntry = new Panel { Dock = DockStyle.Left, Width = 350, BackColor = Color.White, Padding = new Padding(20) };
 
-            tabs.TabPages.Add(CreateVoucherTab("Receipt Vouchers / سندات القبض", "Receipt"));
-            tabs.TabPages.Add(CreateVoucherTab("Payment Vouchers / سندات الصرف", "Payment"));
+            cbType = CreateField<ComboBox>(isArabic ? "نوع السند:" : "Voucher Type:", pnlEntry);
+            cbType.Items.AddRange(new string[] { isArabic ? "صرف (مصروف/مورد)" : "Payment (Expense/Supplier)", isArabic ? "قبض (عميل)" : "Receipt (Customer)" });
+            cbType.SelectedIndex = 0;
 
-            this.Controls.Add(tabs);
-            LanguageHelper.ApplyLanguage(this);
+            cbAccount = CreateField<ComboBox>(isArabic ? "الحساب المستهدف:" : "Target Account:", pnlEntry);
+            txtAmount = CreateField<TextBox>(isArabic ? "المبلغ:" : "Amount:", pnlEntry);
+            cbPaymentMethod = CreateField<ComboBox>(isArabic ? "طريقة الدفع:" : "Payment Method:", pnlEntry);
+            cbPaymentMethod.Items.AddRange(new string[] { isArabic ? "نقد" : "Cash", isArabic ? "بنك / شبكة" : "Bank / Card" });
+            cbPaymentMethod.SelectedIndex = 0;
+
+            txtNotes = CreateField<TextBox>(isArabic ? "ملاحظات:" : "Notes:", pnlEntry);
+            txtNotes.Multiline = true; txtNotes.Height = 80;
+
+            Button btnSave = new Button { Text = isArabic ? "حفظ السند" : "SAVE VOUCHER", Dock = DockStyle.Bottom, Height = 45, BackColor = UITheme.SuccessColor, ForeColor = Color.White, FlatStyle = FlatStyle.Flat, Font = new Font("Segoe UI", 10, FontStyle.Bold) };
+            btnSave.Click += BtnSave_Click;
+            pnlEntry.Controls.Add(btnSave);
+
+            dgvRecent = new DataGridView { Dock = DockStyle.Fill, BackColor = Color.White };
+            UITheme.ApplyModernStyle(dgvRecent);
+
+            this.Controls.Add(dgvRecent);
+            this.Controls.Add(pnlEntry);
         }
 
-        private TabPage CreateVoucherTab(string title, string type)
+        private T CreateField<T>(string label, Panel p) where T : Control, new()
         {
-            TabPage tp = new TabPage(title);
-            Panel pnl = new Panel { Dock = DockStyle.Fill, Padding = new Padding(20) };
+            p.Controls.Add(new Label { Text = label, Dock = DockStyle.Top, Height = 25, Font = UITheme.GridFont });
+            T field = new T { Dock = DockStyle.Top, Height = 30, Font = UITheme.MainFont };
+            p.Controls.Add(field);
+            p.Controls.Add(new Panel { Dock = DockStyle.Top, Height = 15 }); // Spacer
+            return field;
+        }
 
-            pnl.Controls.Add(new Label { Text = "Account / الحساب", Location = new Point(20, 20), AutoSize = true });
-            ComboBox cbAcc = new ComboBox { Location = new Point(150, 18), Width = 250 };
+        private async void LoadAccounts()
+        {
+            var accounts = await _acctListRepo.GetFullChartOfAccountsAsync();
+            cbAccount.DataSource = accounts.ToList();
+            cbAccount.DisplayMember = "AccountName";
+            cbAccount.ValueMember = "AccountID";
+        }
 
-            // Load accounts from DB
-            LoadAccountsForVoucher(cbAcc);
+        private async void BtnSave_Click(object sender, EventArgs e)
+        {
+            if (string.IsNullOrEmpty(txtAmount.Text) || cbAccount.SelectedValue == null) return;
 
-            pnl.Controls.Add(cbAcc);
-
-            pnl.Controls.Add(new Label { Text = "Amount / المبلغ", Location = new Point(20, 60), AutoSize = true });
-            TextBox txtAmt = new TextBox { Location = new Point(150, 58), Width = 150 };
-            pnl.Controls.Add(txtAmt);
-
-            Button btnSave = new Button { Text = "SAVE VOUCHER / حفظ السند", Location = new Point(20, 150), Width = 380, Height = 60, BackColor = Color.FromArgb(0, 122, 204), ForeColor = Color.White, Font = new Font("Arial", 12, FontStyle.Bold) };
-            btnSave.Click += async (s, e) => {
-                if (cbAcc.SelectedItem == null) return;
-                int accId = ((AccountItem)cbAcc.SelectedItem).ID;
-                await _accRepo.PostVoucherAsync(accId, decimal.Parse(txtAmt.Text), type, 1, $"Voucher ({type}): {cbAcc.Text}");
-                MessageBox.Show("Voucher Saved & Ledger Updated! / تم حفظ السند وترحيل القيود للحسابات");
-                txtAmt.Clear();
+            var voucher = new Voucher {
+                VoucherType = cbType.SelectedIndex == 0 ? "Payment" : "Receipt",
+                VoucherDate = DateTime.Now,
+                Amount = decimal.Parse(txtAmount.Text),
+                AccountID = (int)cbAccount.SelectedValue,
+                PaymentType = cbPaymentMethod.SelectedIndex == 0 ? "Cash" : "Bank",
+                Notes = txtNotes.Text,
+                CreatedBy = 1
             };
-            pnl.Controls.Add(btnSave);
 
-            tp.Controls.Add(pnl);
-            return tp;
-        }
-
-        private async void LoadAccountsForVoucher(ComboBox cb)
-        {
-            string conn = AppSettings.ConnectionString;
-            using (var db = new Microsoft.Data.SqlClient.SqlConnection(conn))
-            {
-                var accs = await db.QueryAsync<dynamic>("SELECT AccountID, AccountName FROM ChartOfAccounts WHERE ParentAccountID IS NOT NULL");
-                foreach (var acc in accs)
-                {
-                    cb.Items.Add(new AccountItem { ID = (int)acc.AccountID, Name = (string)acc.AccountName });
-                }
-            }
-        }
-
-        private class AccountItem
-        {
-            public int ID { get; set; }
-            public string Name { get; set; }
-            public override string ToString() => Name;
+            await _accRepo.SaveVoucherAsync(voucher);
+            MessageBox.Show(LanguageHelper.TranslationService.CurrentLanguage == Language.Arabic ? "تم حفظ السند والقيود المحاسبية" : "Voucher and Journal Entries saved");
+            this.Close();
         }
 
         private void InitializeComponent() { }

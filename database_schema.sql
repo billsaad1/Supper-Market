@@ -51,6 +51,8 @@ CREATE TABLE Items (
     ItemName NVARCHAR(200) NOT NULL,
     CategoryID INT,
     Unit NVARCHAR(20),
+    PurchaseUnit NVARCHAR(20),
+    ConversionFactor DECIMAL(18, 2) DEFAULT 1.0,
     CostPrice DECIMAL(18, 2),
     SalePrice DECIMAL(18, 2),
     TaxRate DECIMAL(5, 2) DEFAULT 15.0, -- Default VAT 15%
@@ -344,6 +346,9 @@ IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Stock') AN
 
 -- Accounting for returns
 INSERT INTO ChartOfAccounts (AccountNumber, AccountName, AccountType) VALUES ('4104', N'مرتجعات مشتريات', 'Revenue');
+INSERT INTO ChartOfAccounts (AccountNumber, AccountName, AccountType) VALUES ('5104', N'رواتب ومزايا', 'Expense');
+INSERT INTO ChartOfAccounts (AccountNumber, AccountName, AccountType) VALUES ('5105', N'إيجارات', 'Expense');
+INSERT INTO ChartOfAccounts (AccountNumber, AccountName, AccountType) VALUES ('5106', N'كهرباء ومياه', 'Expense');
 
 -- Additional charges for Landed Cost
 ALTER TABLE PurchaseInvoices ADD OtherCharges DECIMAL(18, 2) DEFAULT 0;
