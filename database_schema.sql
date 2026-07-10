@@ -301,3 +301,49 @@ INSERT INTO Localization (ResourceKey, ArabicValue, EnglishValue) VALUES
 ('Items / الأصناف', N'الأصناف', 'Items'),
 ('Settings / الإعدادات', N'الإعدادات', 'Settings');
 GO
+
+-- Advanced Purchasing Additions
+ALTER TABLE PurchaseInvoiceItems ADD DiscountRate DECIMAL(5, 2) DEFAULT 0;
+ALTER TABLE PurchaseInvoiceItems ADD DiscountAmount DECIMAL(18, 2) DEFAULT 0;
+
+-- Table: PurchaseReturns
+CREATE TABLE PurchaseReturns (
+    ReturnID INT PRIMARY KEY IDENTITY(1,1),
+    ReturnNumber NVARCHAR(50) UNIQUE,
+    OriginalPurchaseID INT,
+    SupplierID INT,
+    StoreID INT,
+    ReturnDate DATETIME DEFAULT GETDATE(),
+    TotalAmount DECIMAL(18, 2),
+    TaxAmount DECIMAL(18, 2),
+    NetAmount DECIMAL(18, 2),
+    CreatedBy INT,
+    FOREIGN KEY (OriginalPurchaseID) REFERENCES PurchaseInvoices(PurchaseID),
+    FOREIGN KEY (SupplierID) REFERENCES Suppliers(SupplierID),
+    FOREIGN KEY (StoreID) REFERENCES Stores(StoreID),
+    FOREIGN KEY (CreatedBy) REFERENCES Users(UserID)
+);
+
+-- Table: PurchaseReturnItems
+CREATE TABLE PurchaseReturnItems (
+    ReturnItemID INT PRIMARY KEY IDENTITY(1,1),
+    ReturnID INT,
+    ItemID INT,
+    Quantity DECIMAL(18, 2),
+    UnitPrice DECIMAL(18, 2),
+    TaxAmount DECIMAL(18, 2),
+    TotalAmount DECIMAL(18, 2),
+    FOREIGN KEY (ReturnID) REFERENCES PurchaseReturns(ReturnID),
+    FOREIGN KEY (ItemID) REFERENCES Items(ItemID)
+);
+
+-- Ensure Stock tracks Expiry as part of the unique key for batching if needed
+-- For this simple ERP, we keep Expiry in Stock table as columns
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Stock') AND name = 'BatchNumber')
+    ALTER TABLE Stock ADD BatchNumber NVARCHAR(50);
+
+-- Accounting for returns
+INSERT INTO ChartOfAccounts (AccountNumber, AccountName, AccountType) VALUES ('4104', N'مرتجعات مشتريات', 'Revenue');
+
+-- Additional charges for Landed Cost
+ALTER TABLE PurchaseInvoices ADD OtherCharges DECIMAL(18, 2) DEFAULT 0;

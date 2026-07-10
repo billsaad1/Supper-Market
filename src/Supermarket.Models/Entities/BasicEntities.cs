@@ -56,8 +56,11 @@ namespace Supermarket.Models.Entities
         public string InvoiceNumber { get; set; }
         public int SupplierID { get; set; }
         public int StoreID { get; set; }
+        public DateTime InvoiceDate { get; set; }
         public decimal TotalAmount { get; set; }
         public decimal TaxAmount { get; set; }
+        public decimal DiscountAmount { get; set; }
+        public decimal OtherCharges { get; set; }
         public decimal NetAmount { get; set; }
         public string PaymentType { get; set; } // Cash, Credit
         public int CreatedBy { get; set; }
@@ -67,6 +70,34 @@ namespace Supermarket.Models.Entities
     {
         public int PurchaseItemID { get; set; }
         public int PurchaseID { get; set; }
+        public int ItemID { get; set; }
+        public decimal Quantity { get; set; }
+        public decimal UnitPrice { get; set; }
+        public decimal DiscountRate { get; set; }
+        public decimal DiscountAmount { get; set; }
+        public decimal TaxAmount { get; set; }
+        public decimal TotalAmount { get; set; }
+        public DateTime? ExpiryDate { get; set; }
+    }
+
+    public class PurchaseReturn
+    {
+        public int ReturnID { get; set; }
+        public string ReturnNumber { get; set; }
+        public int? OriginalPurchaseID { get; set; }
+        public int SupplierID { get; set; }
+        public int StoreID { get; set; }
+        public DateTime ReturnDate { get; set; }
+        public decimal TotalAmount { get; set; }
+        public decimal TaxAmount { get; set; }
+        public decimal NetAmount { get; set; }
+        public int CreatedBy { get; set; }
+    }
+
+    public class PurchaseReturnItem
+    {
+        public int ReturnItemID { get; set; }
+        public int ReturnID { get; set; }
         public int ItemID { get; set; }
         public decimal Quantity { get; set; }
         public decimal UnitPrice { get; set; }
