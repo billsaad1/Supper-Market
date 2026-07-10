@@ -33,5 +33,15 @@ namespace Supermarket.DAL
                 return await db.QueryAsync("SELECT * FROM Customers");
             }
         }
+
+        public async Task<int> AddCustomerAsync(string name)
+        {
+            using (IDbConnection db = new SqlConnection(_connectionString))
+            {
+                return await db.QuerySingleAsync<int>(
+                    "INSERT INTO Customers (CustomerName) VALUES (@name); SELECT CAST(SCOPE_IDENTITY() as int)",
+                    new { name });
+            }
+        }
     }
 }

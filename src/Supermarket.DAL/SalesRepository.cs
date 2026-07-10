@@ -61,7 +61,7 @@ namespace Supermarket.DAL
 
                         // Get Account IDs by Codes
                         var accounts = await db.QueryAsync<dynamic>(
-                            "SELECT AccountID, AccountNumber FROM ChartOfAccounts WHERE AccountNumber IN ('1101', '4101', '2101', '5101', '1201', '1102')",
+                            "SELECT AccountID, AccountNumber FROM ChartOfAccounts WHERE AccountNumber IN ('1101', '4101', '2101', '5101', '1201', '1102', '1103')",
                             null, transaction);
 
                         int cashAcc = accounts.First(a => a.AccountNumber == "1101").AccountID;
@@ -70,11 +70,20 @@ namespace Supermarket.DAL
                         int cogsAcc = accounts.First(a => a.AccountNumber == "5101").AccountID;
                         int inventoryAcc = accounts.First(a => a.AccountNumber == "1201").AccountID;
                         int customerAcc = accounts.First(a => a.AccountNumber == "1102").AccountID;
+                        int bankAcc = accounts.First(a => a.AccountNumber == "1103").AccountID;
 
-                        int debitAcc = invoice.PaymentType == "Credit" ? customerAcc : cashAcc;
-
-                        // Debit: Cash/Customer
-                        await db.ExecuteAsync("INSERT INTO JournalEntryDetails (JournalID, AccountID, Debit, Credit) VALUES (@jid, @acc, @amt, 0)", new { jid = journalId, acc = debitAcc, amt = invoice.TotalAmount }, transaction);
+                        if (invoice.PaymentType == "Split")
+                        {
+                            if (invoice.CashAmount > 0)
+                                await db.ExecuteAsync("INSERT INTO JournalEntryDetails (JournalID, AccountID, Debit, Credit) VALUES (@jid, @acc, @amt, 0)", new { jid = journalId, acc = cashAcc, amt = invoice.CashAmount }, transaction);
+                            if (invoice.CardAmount > 0)
+                                await db.ExecuteAsync("INSERT INTO JournalEntryDetails (JournalID, AccountID, Debit, Credit) VALUES (@jid, @acc, @amt, 0)", new { jid = journalId, acc = bankAcc, amt = invoice.CardAmount }, transaction);
+                        }
+                        else
+                        {
+                            int debitAcc = (invoice.PaymentType.Contains("Card") || invoice.PaymentType.Contains("بطاقة")) ? bankAcc : (invoice.PaymentType == "Credit" ? customerAcc : cashAcc);
+                            await db.ExecuteAsync("INSERT INTO JournalEntryDetails (JournalID, AccountID, Debit, Credit) VALUES (@jid, @acc, @amt, 0)", new { jid = journalId, acc = debitAcc, amt = invoice.TotalAmount }, transaction);
+                        }
                         // Credit: Sales
                         await db.ExecuteAsync("INSERT INTO JournalEntryDetails (JournalID, AccountID, Debit, Credit) VALUES (@jid, @acc, 0, @amt)", new { jid = journalId, acc = salesAcc, amt = invoice.NetAmount }, transaction);
                         // Credit: VAT

@@ -184,58 +184,72 @@ namespace Supermarket.UI.Views
         private void AddSectionLabel(string text, ref int y)
         {
             bool isArabic = LanguageHelper.TranslationService.CurrentLanguage == Language.Arabic;
+            Panel pBox = new Panel {
+                Top = y + 15,
+                Left = 10,
+                Width = 220,
+                Height = 28,
+                BackColor = Color.FromArgb(48, 48, 52)
+            };
             Label lbl = new Label {
                 Text = text,
-                ForeColor = Color.FromArgb(140, 140, 145),
+                ForeColor = Color.FromArgb(160, 160, 165),
                 Font = new Font("Segoe UI", 8, FontStyle.Bold),
-                Top = y + 10,
-                Left = 0,
-                Width = 240,
-                Height = 30,
-                AutoSize = false,
-                TextAlign = isArabic ? ContentAlignment.MiddleRight : ContentAlignment.MiddleLeft,
-                Padding = isArabic ? new Padding(0, 0, 20, 0) : new Padding(20, 0, 0, 0)
+                Dock = DockStyle.Fill,
+                TextAlign = ContentAlignment.MiddleCenter
             };
-            sidePanel.Controls.Add(lbl);
-            y += 35;
+            pBox.Controls.Add(lbl);
+            sidePanel.Controls.Add(pBox);
+            y += 50;
         }
 
         private void AddMenuButton(string text, ref int y, EventHandler onClick)
         {
             bool isArabic = LanguageHelper.TranslationService.CurrentLanguage == Language.Arabic;
+
+            // Get Icon based on text
+            string icon = "• ";
+            if (text.Contains("نقطة") || text.Contains("POS")) icon = "🛒 ";
+            else if (text.Contains("المشتريات") || text.Contains("Purchases")) icon = "📦 ";
+            else if (text.Contains("التقارير") || text.Contains("Reports")) icon = "📊 ";
+            else if (text.Contains("الأصناف") || text.Contains("Items")) icon = "🏷️ ";
+            else if (text.Contains("الحسابات") || text.Contains("Accounts")) icon = "🏦 ";
+            else if (text.Contains("المستخدمين") || text.Contains("Users")) icon = "👥 ";
+            else if (text.Contains("الشركة") || text.Contains("Company")) icon = "🏢 ";
+
+            Panel pBtn = new Panel { Top = y, Left = 10, Width = 220, Height = 45, BackColor = Color.Transparent };
             Button btn = new Button
             {
-                Text = text,
-                Top = y,
-                Width = 240,
-                Height = 40,
+                Text = (isArabic ? "" : icon) + text + (isArabic ? " " + icon : ""),
+                Dock = DockStyle.Fill,
                 FlatStyle = FlatStyle.Flat,
-                ForeColor = Color.FromArgb(200, 200, 203),
+                ForeColor = Color.FromArgb(210, 210, 215),
                 TextAlign = isArabic ? ContentAlignment.MiddleRight : ContentAlignment.MiddleLeft,
-                Padding = isArabic ? new Padding(0, 0, 25, 0) : new Padding(25, 0, 0, 0),
-                Font = new Font("Segoe UI", 9.5f),
+                Padding = isArabic ? new Padding(0, 0, 15, 0) : new Padding(15, 0, 0, 0),
+                Font = new Font("Segoe UI", 10f),
                 Cursor = Cursors.Hand
             };
 
             btn.FlatAppearance.BorderSize = 0;
-            btn.FlatAppearance.MouseOverBackColor = Color.FromArgb(60, 65, 70);
+            btn.FlatAppearance.MouseOverBackColor = Color.FromArgb(70, 75, 80);
 
             btn.Click += (s, e) => {
                 lblTitle.Text = text.Trim().ToUpper();
                 onClick(s, e);
                 foreach(Control c in sidePanel.Controls) {
-                    if(c is Button b) {
+                    if (c is Panel p && p.Controls.Count > 0 && p.Controls[0] is Button b) {
                         b.BackColor = Color.Transparent;
-                        b.ForeColor = Color.FromArgb(200, 200, 203);
-                        b.Font = new Font("Segoe UI", 9.5f);
+                        b.ForeColor = Color.FromArgb(210, 210, 215);
+                        b.Font = new Font("Segoe UI", 10f);
                     }
                 }
                 btn.BackColor = UITheme.SidebarSelected;
                 btn.ForeColor = Color.White;
-                btn.Font = new Font("Segoe UI", 9.5f, FontStyle.Bold);
+                btn.Font = new Font("Segoe UI", 10f, FontStyle.Bold);
             };
-            sidePanel.Controls.Add(btn);
-            y += 40;
+            pBtn.Controls.Add(btn);
+            sidePanel.Controls.Add(pBtn);
+            y += 48;
         }
 
         private void OpenForm(Form frm)

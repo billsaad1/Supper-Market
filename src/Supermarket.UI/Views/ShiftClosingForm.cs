@@ -93,16 +93,22 @@ namespace Supermarket.UI.Views
             using (var db = new Microsoft.Data.SqlClient.SqlConnection(conn))
             {
                 var data = await db.QueryFirstOrDefaultAsync<dynamic>(@"
-                    SELECT ExpectedAmount,
-                    (SELECT ISNULL(SUM(NetAmount), 0) FROM SalesInvoices WHERE CreatedBy = s.UserID AND InvoiceDate >= s.StartTime AND PaymentType = 'Cash') as CashTotal,
-                    (SELECT ISNULL(SUM(NetAmount), 0) FROM SalesInvoices WHERE CreatedBy = s.UserID AND InvoiceDate >= s.StartTime AND PaymentType = 'Card') as CardTotal
-                    FROM CashierShifts s WHERE Status = 'Open' AND UserID = 1", new { userId = 1 });
+                    SELECT
+                        ISNULL(SUM(CASE WHEN PaymentType LIKE '%Cash%' OR PaymentType LIKE '%نقدي%' THEN TotalAmount ELSE 0 END), 0) as CashTotal,
+                        ISNULL(SUM(CASE WHEN PaymentType LIKE '%Card%' OR PaymentType LIKE '%بطاقة%' THEN TotalAmount ELSE 0 END), 0) as CardTotal,
+                        ISNULL(SUM(TotalAmount), 0) as GrandTotal
+                    FROM SalesInvoices
+                    WHERE InvoiceDate >= (SELECT StartTime FROM CashierShifts WHERE Status = 'Open' AND UserID = 1)");
 
                 if (data != null) {
                     if (isArabic)
-                        lblExpected.Text = $"المتوقع (نقدي): {data.CashTotal:F2} ريال\nالمتوقع (بطاقة): {data.CardTotal:F2} ريال\nالإجمالي: {data.ExpectedAmount:F2} ريال";
+                        lblExpected.Text = $"المتوقع (نقدي): {data.CashTotal:N2} ريال\n" +
+                                         $"المتوقع (بطاقة): {data.CardTotal:N2} ريال\n" +
+                                         $"الإجمالي العام: {data.GrandTotal:N2} ريال";
                     else
-                        lblExpected.Text = $"Expected (Cash): {data.CashTotal:F2} YER\nExpected (Card): {data.CardTotal:F2} YER\nTotal: {data.ExpectedAmount:F2} YER";
+                        lblExpected.Text = $"Expected (Cash): {data.CashTotal:N2} YER\n" +
+                                         $"Expected (Card): {data.CardTotal:N2} YER\n" +
+                                         $"Total Sales: {data.GrandTotal:N2} YER";
                 }
             }
         }

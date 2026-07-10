@@ -84,6 +84,8 @@ namespace Supermarket.Models.Entities
         public decimal TaxAmount { get; set; }
         public decimal DiscountAmount { get; set; }
         public decimal NetAmount { get; set; }
+        public decimal CashAmount { get; set; }
+        public decimal CardAmount { get; set; }
         public string PaymentType { get; set; }
         public int CreatedBy { get; set; }
         public string QRCode { get; set; }

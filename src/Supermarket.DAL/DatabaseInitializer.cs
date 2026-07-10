@@ -286,7 +286,8 @@ INSERT INTO ChartOfAccounts (AccountID, AccountNumber, AccountName, AccountType)
 (9, '4102', N'زيادة الصندوق', 'Revenue'),
 (10, '4103', N'مرتجعات مبيعات', 'Revenue'),
 (11, '1202', N'ضريبة المدخلات', 'Asset'),
-(12, '2102', N'دائنون - موردون', 'Liability');
+(12, '2102', N'دائنون - موردون', 'Liability'),
+(13, '1103', N'البنك - بطاقة', 'Asset');
 SET IDENTITY_INSERT ChartOfAccounts OFF;
 
 INSERT INTO Suppliers (SupplierName, Phone) VALUES (N'المورد الافتراضي', '0500000000');
