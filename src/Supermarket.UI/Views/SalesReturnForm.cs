@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using Supermarket.BLL.Services;
 using Supermarket.DAL;
 using Dapper;
+using System.Linq;
 
 namespace Supermarket.UI.Views
 {
@@ -15,6 +16,7 @@ namespace Supermarket.UI.Views
         private ReturnsRepository _returnRepo;
         private DataGridView dgvItems;
         private TextBox txtInvoiceNum;
+        private Label lblTotalRefund;
         private int _currentSalesId = 0;
 
         public SalesReturnForm()
@@ -29,7 +31,7 @@ namespace Supermarket.UI.Views
         private void SetupUI()
         {
             bool isArabic = LanguageHelper.TranslationService.CurrentLanguage == Supermarket.BLL.Services.Language.Arabic;
-            this.Text = isArabic ? "مرتجع مبيعات" : "Sales Returns";
+            this.Text = isArabic ? "مرتجع مبيعات متطور" : "Advanced Sales Returns";
             this.Size = new Size(1100, 750);
             this.BackColor = UITheme.ContentBg;
             this.RightToLeft = isArabic ? RightToLeft.Yes : RightToLeft.No;
@@ -47,7 +49,6 @@ namespace Supermarket.UI.Views
                 FlatStyle = FlatStyle.Flat,
                 Font = new Font("Segoe UI", 9, FontStyle.Bold)
             };
-            btnSearch.FlatAppearance.BorderSize = 0;
             btnSearch.Click += async (s, e) => {
                 dgvItems.Rows.Clear();
                 _currentSalesId = 0;
@@ -67,16 +68,13 @@ namespace Supermarket.UI.Views
                         "SELECT i.ItemID, i.ItemName, si.Quantity, si.UnitPrice FROM SalesInvoiceItems si JOIN Items i ON si.ItemID = i.ItemID WHERE si.SalesID = @SID",
                         new { SID = _currentSalesId });
 
-                    foreach (var item in items)
-                    {
-                        dgvItems.Rows.Add(item.ItemID, item.ItemName, item.Quantity, 0, item.UnitPrice, 0);
-                    }
+                    foreach (var item in items) dgvItems.Rows.Add(item.ItemID, item.ItemName, item.Quantity, 0, item.UnitPrice, 0);
                 }
             };
 
             top.Controls.AddRange(new Control[] { lblInfo, txtInvoiceNum, btnSearch });
 
-            dgvItems = new DataGridView { Dock = DockStyle.Fill, AllowUserToAddRows = false, AutoGenerateColumns = false };
+            dgvItems = new DataGridView { Dock = DockStyle.Fill, AllowUserToAddRows = false };
             UITheme.ApplyModernStyle(dgvItems);
             dgvItems.Columns.Add(new DataGridViewTextBoxColumn { Name = "ItemID", Visible = false });
             dgvItems.Columns.Add(new DataGridViewTextBoxColumn { Name = "Name", HeaderText = isArabic ? "الصنف" : "Item", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill, ReadOnly = true });
@@ -97,47 +95,47 @@ namespace Supermarket.UI.Views
                         }
                         decimal price = Convert.ToDecimal(row.Cells["Price"].Value);
                         row.Cells["Total"].Value = qty * price;
+                        UpdateTotalRefund();
                     }
                 }
             };
 
-            Panel pnlFooter = new Panel { Dock = DockStyle.Bottom, Height = 80, BackColor = Color.White, BorderStyle = BorderStyle.FixedSingle, Padding = new Padding(10) };
+            Panel pnlFooter = new Panel { Dock = DockStyle.Bottom, Height = 100, BackColor = Color.White, BorderStyle = BorderStyle.FixedSingle, Padding = new Padding(15) };
+            lblTotalRefund = new Label { Text = "0.00", Font = new Font("Segoe UI", 24, FontStyle.Bold), ForeColor = Color.DarkRed, Dock = DockStyle.Left, Width = 300, TextAlign = ContentAlignment.MiddleLeft };
+
             Button btnSave = new Button {
-                Text = isArabic ? "إتمام عملية المرتجع" : "PROCESS RETURN",
-                Dock = DockStyle.Fill,
+                Text = isArabic ? "إتمام عملية المرتجع" : "PROCESS REFUND",
+                Dock = DockStyle.Right, Width = 300,
                 BackColor = Color.FromArgb(220, 53, 69),
                 ForeColor = Color.White,
                 Font = new Font("Segoe UI", 14, FontStyle.Bold),
                 FlatStyle = FlatStyle.Flat
             };
-            btnSave.FlatAppearance.BorderSize = 0;
             btnSave.Click += async (s, e) => {
-                if (_currentSalesId == 0) {
-                    MessageBox.Show(isArabic ? "يرجى البحث عن فاتورة أولاً" : "Please search for an invoice first");
-                    return;
-                }
+                if (_currentSalesId == 0) return;
+                var itemsToReturn = dgvItems.Rows.Cast<DataGridViewRow>()
+                    .Where(r => Convert.ToDecimal(r.Cells["RetQty"].Value ?? 0) > 0)
+                    .Select(r => new { ItemID = (int)r.Cells["ItemID"].Value, Qty = Convert.ToDecimal(r.Cells["RetQty"].Value) })
+                    .ToList<dynamic>();
 
-                List<dynamic> itemsToReturn = new List<dynamic>();
-                foreach (DataGridViewRow row in dgvItems.Rows) {
-                    decimal retQty = Convert.ToDecimal(row.Cells["RetQty"].Value ?? 0);
-                    if (retQty > 0) {
-                        itemsToReturn.Add(new { ItemID = row.Cells["ItemID"].Value, Qty = retQty });
-                    }
-                }
-
-                if (itemsToReturn.Count > 0) {
+                if (itemsToReturn.Any()) {
                     await _returnRepo.ProcessSalesReturnAsync(_currentSalesId, itemsToReturn, 1);
-                    MessageBox.Show(isArabic ? "تم إتمام المرتجع بنجاح" : "Return Processed Successfully!");
+                    MessageBox.Show(isArabic ? "تم إتمام المرتجع بنجاح وتحديث الحسابات" : "Return Processed Successfully!");
                     this.Close();
                 }
             };
-            pnlFooter.Controls.Add(btnSave);
+            pnlFooter.Controls.AddRange(new Control[] { lblTotalRefund, btnSave });
 
             this.Controls.Add(dgvItems);
             this.Controls.Add(top);
             this.Controls.Add(pnlFooter);
-
             LanguageHelper.ApplyLanguage(this);
+        }
+
+        private void UpdateTotalRefund()
+        {
+            decimal total = dgvItems.Rows.Cast<DataGridViewRow>().Sum(r => Convert.ToDecimal(r.Cells["Total"].Value ?? 0));
+            lblTotalRefund.Text = total.ToString("N2");
         }
 
         private void InitializeComponent() { }

@@ -2,75 +2,84 @@ using Supermarket.UI.Helpers;
 using System;
 using System.Drawing;
 using System.Windows.Forms;
+using System.Collections.Generic;
 using Supermarket.DAL;
+using Supermarket.BLL.Services;
+using System.Linq;
 
 namespace Supermarket.UI.Views
 {
     public partial class WasteForm : Form
     {
+        private DataGridView dgvItems;
+        private TextBox txtBarcode;
         private StockOperationRepository _stockRepo;
+        private MasterDataRepository _itemRepo;
 
         public WasteForm()
         {
             InitializeComponent();
-            _stockRepo = new StockOperationRepository(AppSettings.ConnectionString);
+            string conn = AppSettings.ConnectionString;
+            _stockRepo = new StockOperationRepository(conn);
+            _itemRepo = new MasterDataRepository(conn);
             SetupUI();
         }
 
         private void SetupUI()
         {
-            bool isArabic = LanguageHelper.TranslationService.CurrentLanguage == Supermarket.BLL.Services.Language.Arabic;
-            this.Text = isArabic ? "إدارة التوالف" : "Waste Management";
-            this.Size = new Size(1100, 750);
+            bool isArabic = LanguageHelper.TranslationService.CurrentLanguage == Language.Arabic;
+            this.Text = isArabic ? "تسجيل التوالف والهالك" : "Waste & Damaged Goods";
+            this.Size = new Size(900, 650);
             this.BackColor = UITheme.ContentBg;
             this.RightToLeft = isArabic ? RightToLeft.Yes : RightToLeft.No;
 
-            Panel pnlHeader = new Panel { Dock = DockStyle.Top, Height = 100, BackColor = Color.White, Padding = new Padding(25), BorderStyle = BorderStyle.FixedSingle };
-            Label lblHeader = new Label { Text = isArabic ? "تسجيل تالف / منتهي الصلاحية" : "Waste / Expired Goods Registration", Font = new Font("Segoe UI", 14, FontStyle.Bold), AutoSize = true, Location = new Point(20, 30) };
-            pnlHeader.Controls.Add(lblHeader);
-
-            Panel pnlEntry = new Panel { Dock = DockStyle.Top, Height = 160, BackColor = Color.White, Padding = new Padding(25) };
-            pnlEntry.Paint += (s, e) => { e.Graphics.DrawLine(Pens.LightGray, 0, pnlEntry.Height - 1, pnlEntry.Width, pnlEntry.Height - 1); };
-
-            Label lblBarcode = new Label { Text = isArabic ? "باركود الصنف:" : "Item Barcode:", Location = new Point(25, 20), AutoSize = true, Font = UITheme.MainFont };
-            TextBox txtBarcode = new TextBox { Location = new Point(25, 45), Width = 300, Font = new Font("Segoe UI", 12) };
-
-            Label lblQty = new Label { Text = isArabic ? "الكمية:" : "Quantity:", Location = new Point(340, 20), AutoSize = true, Font = UITheme.MainFont };
-            TextBox txtQty = new TextBox { Location = new Point(340, 45), Width = 100, Font = new Font("Segoe UI", 12) };
-
-            Label lblReason = new Label { Text = isArabic ? "سبب الإتلاف:" : "Waste Reason:", Location = new Point(460, 20), AutoSize = true, Font = UITheme.MainFont };
-            ComboBox cbReason = new ComboBox { Location = new Point(460, 45), Width = 200, Font = new Font("Segoe UI", 12), DropDownStyle = ComboBoxStyle.DropDownList };
-            cbReason.Items.AddRange(isArabic ? new string[] { "منتهي الصلاحية", "تالف / كسر", "مفقود / عجز" } : new string[] { "Expired", "Damaged", "Lost/Missing" });
-            cbReason.SelectedIndex = 0;
-
-            Button btnSave = new Button {
-                Text = isArabic ? "حفظ التالف وتحديث المخزن" : "SAVE & UPDATE STOCK",
-                Location = new Point(25, 100),
-                Width = 250,
-                Height = 40,
-                BackColor = Color.FromArgb(220, 53, 69),
-                ForeColor = Color.White,
-                FlatStyle = FlatStyle.Flat,
-                Font = new Font("Segoe UI", 10, FontStyle.Bold)
-            };
-            btnSave.FlatAppearance.BorderSize = 0;
-            btnSave.Click += async (s, e) => {
-                if (decimal.TryParse(txtQty.Text, out decimal q)) {
-                    await _stockRepo.SaveAdjustmentAsync(1, 1, -q, "Waste: " + cbReason.Text, 1);
-                    MessageBox.Show(isArabic ? "تم تسجيل العملية بنجاح" : "Waste recorded successfully!");
-                    txtBarcode.Clear(); txtQty.Clear(); txtBarcode.Focus();
+            Panel top = new Panel { Dock = DockStyle.Top, Height = 80, BackColor = Color.White, Padding = new Padding(20) };
+            txtBarcode = new TextBox { Width = 300, Font = new Font("Segoe UI", 12), PlaceholderText = isArabic ? "باركود الصنف التالف..." : "Barcode for Waste Item..." };
+            txtBarcode.KeyDown += async (s, e) => {
+                if (e.KeyCode == Keys.Enter && !string.IsNullOrEmpty(txtBarcode.Text)) {
+                    var item = await _itemRepo.GetItemByBarcodeAsync(txtBarcode.Text);
+                    if (item != null) {
+                        dgvItems.Rows.Add(item.ItemID, item.ItemName, 1, item.CostPrice, item.CostPrice);
+                        txtBarcode.Clear();
+                    }
                 }
             };
+            top.Controls.Add(txtBarcode);
 
-            pnlEntry.Controls.AddRange(new Control[] { lblBarcode, txtBarcode, lblQty, txtQty, lblReason, cbReason, btnSave });
+            dgvItems = new DataGridView { Dock = DockStyle.Fill, AllowUserToAddRows = false };
+            UITheme.ApplyModernStyle(dgvItems);
+            dgvItems.Columns.Add(new DataGridViewTextBoxColumn { Name = "ItemID", Visible = false });
+            dgvItems.Columns.Add(new DataGridViewTextBoxColumn { Name = "Name", HeaderText = isArabic ? "الصنف" : "Item", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill });
+            dgvItems.Columns.Add(new DataGridViewTextBoxColumn { Name = "Qty", HeaderText = isArabic ? "الكمية" : "Qty", Width = 120 });
+            dgvItems.Columns.Add(new DataGridViewTextBoxColumn { Name = "Cost", HeaderText = isArabic ? "التكلفة" : "Cost", Width = 120 });
+            dgvItems.Columns.Add(new DataGridViewTextBoxColumn { Name = "Total", HeaderText = isArabic ? "الإجمالي" : "Total", Width = 150 });
 
-            DataGridView dgv = new DataGridView { Dock = DockStyle.Fill, AllowUserToAddRows = false };
-            UITheme.ApplyModernStyle(dgv);
+            Panel pnlFooter = new Panel { Dock = DockStyle.Bottom, Height = 80, BackColor = Color.White, Padding = new Padding(15) };
+            Button btnSave = new Button {
+                Text = isArabic ? "ترحيل التوالف" : "POST WASTE",
+                Dock = DockStyle.Fill,
+                BackColor = Color.FromArgb(255, 152, 0), ForeColor = Color.White,
+                Font = new Font("Segoe UI", 12, FontStyle.Bold),
+                FlatStyle = FlatStyle.Flat
+            };
+            btnSave.Click += async (s, e) => {
+                var items = dgvItems.Rows.Cast<DataGridViewRow>()
+                    .Select(r => new {
+                        ItemID = (int)r.Cells["ItemID"].Value,
+                        Variance = -Convert.ToDecimal(r.Cells["Qty"].Value)
+                    }).ToList<dynamic>();
 
-            this.Controls.Add(dgv);
-            this.Controls.Add(pnlEntry);
-            this.Controls.Add(pnlHeader);
+                if (items.Any()) {
+                    await _stockRepo.ProcessAdjustmentsAsync(1, items, 1); // Store 1, User 1
+                    MessageBox.Show(isArabic ? "تم تسجيل التوالف وخصمها من المخزن" : "Waste recorded and inventory adjusted!");
+                    this.Close();
+                }
+            };
+            pnlFooter.Controls.Add(btnSave);
 
+            this.Controls.Add(dgvItems);
+            this.Controls.Add(top);
+            this.Controls.Add(pnlFooter);
             LanguageHelper.ApplyLanguage(this);
         }
 

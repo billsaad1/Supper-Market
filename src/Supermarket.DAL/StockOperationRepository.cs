@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
@@ -16,7 +17,19 @@ namespace Supermarket.DAL
             _connectionString = connectionString;
         }
 
-        public async Task SaveAdjustmentAsync(int itemId, int storeId, decimal quantityChange, string type, int userId)
+        public async Task<IEnumerable<dynamic>> GetStockByStoreAsync(int storeId)
+        {
+            using (IDbConnection db = new SqlConnection(_connectionString))
+            {
+                string sql = @"SELECT s.ItemID, i.ItemName, s.Quantity
+                               FROM Stock s
+                               JOIN Items i ON s.ItemID = i.ItemID
+                               WHERE s.StoreID = @storeId";
+                return await db.QueryAsync(sql, new { storeId });
+            }
+        }
+
+        public async Task ProcessAdjustmentsAsync(int storeId, List<dynamic> adjustments, int userId)
         {
             using (IDbConnection db = new SqlConnection(_connectionString))
             {
@@ -25,44 +38,45 @@ namespace Supermarket.DAL
                 {
                     try
                     {
-                        // 1. Update Stock
-                        await db.ExecuteAsync("UPDATE Stock SET Quantity = Quantity + @quantityChange WHERE ItemID = @itemId AND StoreID = @storeId",
-                            new { itemId, storeId, quantityChange }, transaction);
+                        foreach (var adj in adjustments)
+                        {
+                            // 1. Update Stock
+                            await db.ExecuteAsync(
+                                "UPDATE Stock SET Quantity = Quantity + @v WHERE ItemID = @iid AND StoreID = @sid",
+                                new { v = adj.Variance, iid = adj.ItemID, sid = storeId }, transaction);
 
-                        // 2. Record Movement
-                        await db.ExecuteAsync("INSERT INTO StockMovement (ItemID, StoreID, MovementType, Quantity, Notes) VALUES (@itemId, @storeId, @type, @quantityChange, 'Adjustment')",
-                            new { itemId, storeId, type, quantityChange }, transaction);
+                            // 2. Log Movement
+                            await db.ExecuteAsync(
+                                "INSERT INTO StockMovement (ItemID, StoreID, MovementType, Quantity, ReferenceID) VALUES (@iid, @sid, 'Adjustment', @qty, 0)",
+                                new { iid = adj.ItemID, sid = storeId, qty = adj.Variance }, transaction);
 
-                        // 3. Accounting Entry (Simplified: Loss or Gain)
-                        int journalId = await db.QuerySingleAsync<int>(
-                            "INSERT INTO JournalEntries (Description, CreatedBy) VALUES (@Desc, @User); SELECT CAST(SCOPE_IDENTITY() as int)",
-                            new { Desc = "Stock " + type, User = userId }, transaction);
+                            // 3. Accounting (Gain or Loss)
+                            var item = await db.QueryFirstOrDefaultAsync<dynamic>("SELECT CostPrice FROM Items WHERE ItemID = @id", new { id = adj.ItemID }, transaction);
+                            decimal value = Math.Abs(adj.Variance * (decimal)item.CostPrice);
 
-                        var accounts = await db.QueryAsync<dynamic>(
-                            "SELECT AccountID, AccountNumber FROM ChartOfAccounts WHERE AccountNumber IN ('1201', '5102')",
-                            null, transaction);
+                            int journalId = await db.QuerySingleAsync<int>(
+                                "INSERT INTO JournalEntries (Description, CreatedBy) VALUES (@Desc, @User); SELECT CAST(SCOPE_IDENTITY() as int)",
+                                new { Desc = "Inventory Adjustment - Item ID " + adj.ItemID, User = userId }, transaction);
 
-                        int inventoryAcc = accounts.First(a => a.AccountNumber == "1201").AccountID;
-                        int adjustmentAcc = accounts.First(a => a.AccountNumber == "5102").AccountID;
+                            var accounts = await db.QueryAsync<dynamic>("SELECT AccountID, AccountNumber FROM ChartOfAccounts WHERE AccountNumber IN ('1201', '5102', '4102')", null, transaction);
+                            int inventoryAcc = accounts.First(a => a.AccountNumber == "1201").AccountID;
+                            int adjExpenseAcc = accounts.First(a => a.AccountNumber == "5102").AccountID;
+                            int adjRevenueAcc = accounts.First(a => a.AccountNumber == "4102").AccountID;
 
-                        decimal cost = await db.QueryFirstOrDefaultAsync<decimal>("SELECT CostPrice FROM Items WHERE ItemID = @itemId", new { itemId }, transaction);
-                        decimal totalImpact = Math.Abs(quantityChange * cost);
-
-                        if (quantityChange < 0) {
-                            await db.ExecuteAsync("INSERT INTO JournalEntryDetails (JournalID, AccountID, Debit, Credit) VALUES (@jid, @adjAcc, @amt, 0)", new { jid = journalId, adjAcc = adjustmentAcc, amt = totalImpact }, transaction);
-                            await db.ExecuteAsync("INSERT INTO JournalEntryDetails (JournalID, AccountID, Debit, Credit) VALUES (@jid, @invAcc, 0, @amt)", new { jid = journalId, invAcc = inventoryAcc, amt = totalImpact }, transaction);
-                        } else {
-                            await db.ExecuteAsync("INSERT INTO JournalEntryDetails (JournalID, AccountID, Debit, Credit) VALUES (@jid, @invAcc, @amt, 0)", new { jid = journalId, invAcc = inventoryAcc, amt = totalImpact }, transaction);
-                            await db.ExecuteAsync("INSERT INTO JournalEntryDetails (JournalID, AccountID, Debit, Credit) VALUES (@jid, @adjAcc, 0, @amt)", new { jid = journalId, adjAcc = adjustmentAcc, amt = totalImpact }, transaction);
+                            if (adj.Variance < 0) // Loss
+                            {
+                                await db.ExecuteAsync("INSERT INTO JournalEntryDetails (JournalID, AccountID, Debit, Credit) VALUES (@jid, @acc, @amt, 0)", new { jid = journalId, acc = adjExpenseAcc, amt = value }, transaction);
+                                await db.ExecuteAsync("INSERT INTO JournalEntryDetails (JournalID, AccountID, Debit, Credit) VALUES (@jid, @acc, 0, @amt)", new { jid = journalId, acc = inventoryAcc, amt = value }, transaction);
+                            }
+                            else // Gain
+                            {
+                                await db.ExecuteAsync("INSERT INTO JournalEntryDetails (JournalID, AccountID, Debit, Credit) VALUES (@jid, @acc, @amt, 0)", new { jid = journalId, acc = inventoryAcc, amt = value }, transaction);
+                                await db.ExecuteAsync("INSERT INTO JournalEntryDetails (JournalID, AccountID, Debit, Credit) VALUES (@jid, @acc, 0, @amt)", new { jid = journalId, acc = adjRevenueAcc, amt = value }, transaction);
+                            }
                         }
-
                         transaction.Commit();
                     }
-                    catch
-                    {
-                        transaction.Rollback();
-                        throw;
-                    }
+                    catch { transaction.Rollback(); throw; }
                 }
             }
         }
