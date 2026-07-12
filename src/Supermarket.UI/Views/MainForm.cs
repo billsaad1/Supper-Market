@@ -71,7 +71,6 @@ namespace Supermarket.UI.Views
                 Padding = new Padding(20, 0, 20, 0)
             };
 
-            // Modern Search/Info bar in header (placeholder)
             Panel userInfoPnl = new Panel { Dock = isArabic ? DockStyle.Left : DockStyle.Right, Width = 350 };
 
             Label lblUser = new Label {
@@ -108,7 +107,6 @@ namespace Supermarket.UI.Views
             headerPanel.Controls.Add(lblTitle);
             headerPanel.Controls.Add(userInfoPnl);
 
-            // Logo Section
             Panel logoPnl = new Panel {
                 Dock = DockStyle.Top,
                 Height = 80,
@@ -135,7 +133,13 @@ namespace Supermarket.UI.Views
             }
 
             if (PermissionsManager.CanAccess(_userRole, "Purchases")) {
-                AddMenuButton(isArabic ? "المشتريات" : "Purchases", ref y, (s, e) => OpenForm(new PurchaseListForm()));
+                AddSectionLabel(isArabic ? "--- المشتريات ---" : "--- PURCHASES ---", ref y);
+                AddMenuButton(isArabic ? "فاتورة مشتريات جديدة" : "New Purchase Invoice", ref y, (s, e) => {
+                    using (var f = new PurchaseForm()) {
+                        f.ShowDialog();
+                    }
+                });
+                AddMenuButton(isArabic ? "قائمة الفواتير" : "Purchase History", ref y, (s, e) => OpenForm(new PurchaseListForm()));
             }
 
             if (PermissionsManager.CanAccess(_userRole, "Items")) {
@@ -183,21 +187,8 @@ namespace Supermarket.UI.Views
 
         private void AddSectionLabel(string text, ref int y)
         {
-            bool isArabic = LanguageHelper.TranslationService.CurrentLanguage == Language.Arabic;
-            Panel pBox = new Panel {
-                Top = y + 15,
-                Left = 10,
-                Width = 220,
-                Height = 28,
-                BackColor = Color.FromArgb(48, 48, 52)
-            };
-            Label lbl = new Label {
-                Text = text,
-                ForeColor = Color.FromArgb(160, 160, 165),
-                Font = new Font("Segoe UI", 8, FontStyle.Bold),
-                Dock = DockStyle.Fill,
-                TextAlign = ContentAlignment.MiddleCenter
-            };
+            Panel pBox = new Panel { Top = y + 15, Left = 10, Width = 220, Height = 28, BackColor = Color.FromArgb(48, 48, 52) };
+            Label lbl = new Label { Text = text, ForeColor = Color.FromArgb(160, 160, 165), Font = new Font("Segoe UI", 8, FontStyle.Bold), Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleCenter };
             pBox.Controls.Add(lbl);
             sidePanel.Controls.Add(pBox);
             y += 50;
@@ -206,11 +197,9 @@ namespace Supermarket.UI.Views
         private void AddMenuButton(string text, ref int y, EventHandler onClick)
         {
             bool isArabic = LanguageHelper.TranslationService.CurrentLanguage == Language.Arabic;
-
-            // Get Icon based on text
             string icon = "• ";
             if (text.Contains("نقطة") || text.Contains("POS")) icon = "🛒 ";
-            else if (text.Contains("المشتريات") || text.Contains("Purchases")) icon = "📦 ";
+            else if (text.Contains("المشتريات") || text.Contains("Purchases") || text.Contains("Purchase")) icon = "📦 ";
             else if (text.Contains("التقارير") || text.Contains("Reports")) icon = "📊 ";
             else if (text.Contains("الأصناف") || text.Contains("Items")) icon = "🏷️ ";
             else if (text.Contains("الحسابات") || text.Contains("Accounts")) icon = "🏦 ";
@@ -218,34 +207,24 @@ namespace Supermarket.UI.Views
             else if (text.Contains("الشركة") || text.Contains("Company")) icon = "🏢 ";
 
             Panel pBtn = new Panel { Top = y, Left = 10, Width = 220, Height = 45, BackColor = Color.Transparent };
-            Button btn = new Button
-            {
+            Button btn = new Button {
                 Text = (isArabic ? "" : icon) + text + (isArabic ? " " + icon : ""),
-                Dock = DockStyle.Fill,
-                FlatStyle = FlatStyle.Flat,
-                ForeColor = Color.FromArgb(210, 210, 215),
+                Dock = DockStyle.Fill, FlatStyle = FlatStyle.Flat, ForeColor = Color.FromArgb(210, 210, 215),
                 TextAlign = isArabic ? ContentAlignment.MiddleRight : ContentAlignment.MiddleLeft,
                 Padding = isArabic ? new Padding(0, 0, 15, 0) : new Padding(15, 0, 0, 0),
-                Font = new Font("Segoe UI", 10f),
-                Cursor = Cursors.Hand
+                Font = new Font("Segoe UI", 10f), Cursor = Cursors.Hand
             };
-
             btn.FlatAppearance.BorderSize = 0;
             btn.FlatAppearance.MouseOverBackColor = Color.FromArgb(70, 75, 80);
-
             btn.Click += (s, e) => {
                 lblTitle.Text = text.Trim().ToUpper();
                 onClick(s, e);
                 foreach(Control c in sidePanel.Controls) {
                     if (c is Panel p && p.Controls.Count > 0 && p.Controls[0] is Button b) {
-                        b.BackColor = Color.Transparent;
-                        b.ForeColor = Color.FromArgb(210, 210, 215);
-                        b.Font = new Font("Segoe UI", 10f);
+                        b.BackColor = Color.Transparent; b.ForeColor = Color.FromArgb(210, 210, 215); b.Font = new Font("Segoe UI", 10f);
                     }
                 }
-                btn.BackColor = UITheme.SidebarSelected;
-                btn.ForeColor = Color.White;
-                btn.Font = new Font("Segoe UI", 10f, FontStyle.Bold);
+                btn.BackColor = UITheme.SidebarSelected; btn.ForeColor = Color.White; btn.Font = new Font("Segoe UI", 10f, FontStyle.Bold);
             };
             pBtn.Controls.Add(btn);
             sidePanel.Controls.Add(pBtn);
@@ -258,12 +237,6 @@ namespace Supermarket.UI.Views
             frm.MdiParent = this;
             frm.FormBorderStyle = FormBorderStyle.None;
             frm.Dock = DockStyle.Fill;
-
-            // Pass User info if form supports it (duck typing or interface)
-            if (frm is PosForm pos) {
-                // PosForm uses current user context
-            }
-
             frm.Show();
         }
 

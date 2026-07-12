@@ -24,17 +24,35 @@ namespace Supermarket.UI.Views
 
         private void SetupUI()
         {
-            this.Text = "Purchase Invoices / فواتير المشتريات";
+            bool isArabic = LanguageHelper.TranslationService.CurrentLanguage == Supermarket.BLL.Services.Language.Arabic;
+            this.Text = isArabic ? "فواتير المشتريات" : "Purchase Invoices";
             this.Size = new Size(1150, 700);
             this.BackColor = UITheme.ContentBg;
-            bool isArabic = LanguageHelper.TranslationService.CurrentLanguage == Supermarket.BLL.Services.Language.Arabic;
+            this.RightToLeft = isArabic ? RightToLeft.Yes : RightToLeft.No;
 
-            Panel top = new Panel { Dock = DockStyle.Top, Height = 60, BackColor = Color.White, Padding = new Padding(10), BorderStyle = BorderStyle.FixedSingle };
+            Panel top = new Panel { Dock = DockStyle.Top, Height = 70, BackColor = Color.White, Padding = new Padding(15), BorderStyle = BorderStyle.FixedSingle };
 
+            // Search Box (Left-aligned in LTR, Right-aligned in RTL)
+            TextBox txtSearch = new TextBox {
+                Width = 350,
+                Font = UITheme.MainFont,
+                PlaceholderText = isArabic ? "بحث برقم الفاتورة أو المورد..." : "Search Inv # or Supplier...",
+                Dock = DockStyle.Left
+            };
+            txtSearch.TextChanged += async (s, e) => {
+                var data = await _repo.GetPurchaseInvoicesAsync();
+                if (!string.IsNullOrEmpty(txtSearch.Text)) {
+                    string q = txtSearch.Text.ToLower();
+                    data = data.Where(p => (p.InvoiceNumber ?? "").ToLower().Contains(q) || (p.SupplierName ?? "").ToLower().Contains(q));
+                }
+                dgv.DataSource = data.ToList();
+            };
+
+            // New Invoice Button (Opposite side of search)
             Button btnNew = new Button {
                 Text = isArabic ? "+ فاتورة جديدة" : "+ NEW INVOICE",
-                Dock = isArabic ? DockStyle.Left : DockStyle.Right,
-                Width = 180,
+                Dock = DockStyle.Right,
+                Width = 200,
                 BackColor = Color.FromArgb(40, 167, 69),
                 ForeColor = Color.White,
                 Font = new Font("Segoe UI", 10, FontStyle.Bold),
@@ -47,25 +65,12 @@ namespace Supermarket.UI.Views
                 }
             };
 
-            TextBox txtSearch = new TextBox {
-                Width = 300,
-                Font = UITheme.MainFont,
-                PlaceholderText = isArabic ? "بحث برقم الفاتورة أو المورد..." : "Search Inv # or Supplier...",
-                Location = new Point(10, 15)
-            };
-            txtSearch.TextChanged += async (s, e) => {
-                var data = await _repo.GetPurchaseInvoicesAsync();
-                if (!string.IsNullOrEmpty(txtSearch.Text)) {
-                    string q = txtSearch.Text.ToLower();
-                    data = data.Where(p => (p.InvoiceNumber ?? "").ToLower().Contains(q) || (p.SupplierName ?? "").ToLower().Contains(q));
-                }
-                dgv.DataSource = data.ToList();
-            };
-
-            top.Controls.AddRange(new Control[] { txtSearch, btnNew });
+            top.Controls.Add(txtSearch);
+            top.Controls.Add(btnNew);
 
             dgv = new DataGridView { Dock = DockStyle.Fill };
             UITheme.ApplyModernStyle(dgv);
+            dgv.AutoGenerateColumns = false;
 
             dgv.Columns.Add(new DataGridViewTextBoxColumn { Name = "ID", DataPropertyName = "PurchaseID", HeaderText = "ID", Width = 60 });
             dgv.Columns.Add(new DataGridViewTextBoxColumn { Name = "InvNum", DataPropertyName = "InvoiceNumber", HeaderText = isArabic ? "رقم الفاتورة" : "Invoice #", Width = 180 });
@@ -74,7 +79,7 @@ namespace Supermarket.UI.Views
             dgv.Columns.Add(new DataGridViewTextBoxColumn { Name = "Date", DataPropertyName = "InvoiceDate", HeaderText = isArabic ? "التاريخ" : "Date", Width = 160 });
             dgv.Columns.Add(new DataGridViewTextBoxColumn { Name = "Total", DataPropertyName = "NetAmount", HeaderText = isArabic ? "الإجمالي" : "Total", Width = 120 });
 
-            Panel pnlActions = new Panel { Dock = DockStyle.Bottom, Height = 60, BackColor = Color.White, BorderStyle = BorderStyle.FixedSingle };
+            Panel pnlActions = new Panel { Dock = DockStyle.Bottom, Height = 70, BackColor = Color.White, BorderStyle = BorderStyle.FixedSingle, Padding = new Padding(10) };
 
             Button btnDelete = CreateActionButton(isArabic ? "حذف" : "Delete", Color.FromArgb(220, 53, 69), 120);
             btnDelete.Click += async (s, e) => {
@@ -118,7 +123,10 @@ namespace Supermarket.UI.Views
             return btn;
         }
 
-        private async void LoadData() { dgv.DataSource = (await _repo.GetPurchaseInvoicesAsync()).ToList(); }
+        private async void LoadData() {
+            var list = (await _repo.GetPurchaseInvoicesAsync()).ToList();
+            dgv.DataSource = list;
+        }
         private void InitializeComponent() { }
     }
 }
